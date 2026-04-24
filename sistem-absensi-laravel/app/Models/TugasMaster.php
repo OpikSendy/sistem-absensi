@@ -7,8 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class TugasMaster extends Model
 {
     protected $table = 'tugas_master';
+    public $timestamps = false;
 
-    protected $fillable = ['nama_tugas', 'deskripsi', 'aktif'];
+    protected $fillable = ['nama_tugas', 'kategori', 'aktif'];
 
     public function todos()
     {

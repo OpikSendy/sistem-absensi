@@ -9,24 +9,31 @@
     <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
       <i class="bi bi-speedometer2"></i> Dashboard
     </a>
-    <a href="{{ route('admin.users') }}" class="{{ request()->routeIs('admin.users*') ? 'active' : '' }}">
-      <i class="bi bi-people"></i> Kelola User
+  </nav>
+
+  <div class="sidebar-section mt-3">Master Data</div>
+  <nav class="sidebar-nav">
+    <a href="{{ route('admin.users') }}" class="{{ request()->routeIs('admin.users') ? 'active' : '' }}">
+      <i class="bi bi-people"></i> Karyawan
     </a>
-    <a href="{{ route('admin.shifts') }}" class="{{ request()->routeIs('admin.shifts*') ? 'active' : '' }}">
-      <i class="bi bi-clock"></i> Kelola Shift
+    <a href="{{ route('admin.shifts') }}" class="{{ request()->routeIs('admin.shifts') ? 'active' : '' }}">
+      <i class="bi bi-clock-history"></i> Shift Kerja
     </a>
-    <a href="{{ route('admin.tugas') }}" class="{{ request()->routeIs('admin.tugas*') ? 'active' : '' }}">
-      <i class="bi bi-list-task"></i> Kelola Tugas
+    <a href="{{ route('admin.tugas') }}" class="{{ request()->routeIs('admin.tugas') ? 'active' : '' }}">
+      <i class="bi bi-list-check"></i> Master Tugas
     </a>
   </nav>
 
-  <div class="sidebar-section">Laporan</div>
+  <div class="sidebar-section mt-3">Laporan & Pengaturan</div>
   <nav class="sidebar-nav">
     <a href="{{ route('admin.export.excel') }}">
       <i class="bi bi-file-earmark-excel"></i> Export Excel
     </a>
     <a href="{{ route('admin.export.pdf') }}">
       <i class="bi bi-file-earmark-pdf"></i> Export PDF
+    </a>
+    <a href="{{ route('admin.profile') }}" class="{{ request()->routeIs('admin.profile') ? 'active' : '' }}">
+      <i class="bi bi-person-gear"></i> Profil Admin
     </a>
   </nav>
 

@@ -8,6 +8,8 @@ class ShiftMaster extends Model
 {
     protected $table = 'shift_master';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'nama_shift', 'jam_masuk', 'jam_pulang',
         'toleransi_menit', 'durasi_menit', 'aktif',

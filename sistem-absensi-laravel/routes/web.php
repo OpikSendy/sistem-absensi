@@ -49,10 +49,17 @@ Route::middleware(['auth', 'role:admin'])
         Route::delete('/shifts/{shift}', [AdminController::class, 'destroyShift'])->name('shifts.destroy');
 
         Route::get('/tugas', [AdminController::class, 'tugas'])->name('tugas');
+        Route::post('/tugas', [AdminController::class, 'storeTugas'])->name('tugas.store');
+        Route::put('/tugas/{tugas}', [AdminController::class, 'updateTugas'])->name('tugas.update');
+        Route::delete('/tugas/{tugas}', [AdminController::class, 'destroyTugas'])->name('tugas.destroy');
 
         // Absensi management (AJAX/JSON)
         Route::post('/absensi/status', [AbsensiController::class, 'updateStatus'])->name('absensi.status');
         Route::get('/absensi/{absensi}', [AbsensiController::class, 'detail'])->name('absensi.detail');
+
+        // Admin Profile
+        Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
+        Route::post('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
 
         // Export
         Route::get('/export/excel', [ExportController::class, 'exportExcel'])->name('export.excel');
