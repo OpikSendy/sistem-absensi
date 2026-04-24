@@ -126,10 +126,30 @@
                 <textarea name="kendala_hari_ini" id="kendala" rows="2" class="form-control" placeholder="Tulis kendala pekerjaan hari ini..."></textarea>
               </div>
               
-              <div class="mb-4">
-                <label class="form-label fw-semibold">Pekerjaan / Todo List (Opsional)</label>
-                <textarea name="todo_json" class="form-control" rows="3" placeholder="Deskripsikan pekerjaan yang diselesaikan..."></textarea>
-                <small class="text-muted">Fitur Todo yang lebih lengkap akan ada di Phase 5.</small>
+              <div class="mb-4 text-start">
+                <label class="form-label fw-semibold">Pekerjaan / Todo List (Pilih tugas yang dikerjakan)</label>
+                <div class="card border shadow-sm">
+                  <div class="card-body p-3" style="max-height: 200px; overflow-y: auto;">
+                    @forelse($tugas ?? [] as $t)
+                      <div class="form-check mb-2 border-bottom pb-2">
+                        <input class="form-check-input" type="checkbox" name="tugas_ids[]" value="{{ $t->id }}" id="tugas_{{ $t->id }}">
+                        <label class="form-check-label d-block" for="tugas_{{ $t->id }}">
+                          <span class="fw-semibold text-dark">{{ $t->nama_tugas }}</span>
+                          @if($t->kategori)
+                            <span class="badge bg-light text-secondary border ms-1" style="font-size:0.65rem;">{{ $t->kategori }}</span>
+                          @endif
+                        </label>
+                      </div>
+                    @empty
+                      <div class="text-muted small">Belum ada daftar Master Tugas yang aktif.</div>
+                    @endforelse
+                  </div>
+                </div>
+              </div>
+              
+              <div class="mb-4 text-start">
+                <label class="form-label fw-semibold">Catatan Tambahan (Opsional)</label>
+                <textarea name="todo_note" class="form-control" rows="2" placeholder="Catatan tambahan mengenai pekerjaan hari ini..."></textarea>
               </div>
             @endif
 

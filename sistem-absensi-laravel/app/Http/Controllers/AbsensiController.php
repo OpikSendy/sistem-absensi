@@ -70,6 +70,7 @@ class AbsensiController extends Controller
             $absensi = Absensi::create([
                 'user_id'         => $user->id,
                 'waktu'           => $now,
+                'tgl'             => $ymd,
                 'tanggal'         => $ymd,
                 'status'          => 'masuk',
                 'shift_id'        => $shiftInfo['shift_id'],
@@ -112,9 +113,24 @@ class AbsensiController extends Controller
             return response()->json(['ok' => false, 'msg' => 'Sudah absen pulang hari ini.']);
         }
 
+        $todoJsonData = [];
+        $todoNote = $request->input('todo_note');
+        if (!empty($todoNote)) {
+            $todoJsonData[] = ['tipe' => 'catatan', 'teks' => $todoNote];
+        }
+
+        $tugasIds = $request->input('tugas_ids', []);
+        if (is_array($tugasIds) && count($tugasIds) > 0) {
+            $masterTugas = \App\Models\TugasMaster::whereIn('id', $tugasIds)->get();
+            foreach ($masterTugas as $t) {
+                $todoJsonData[] = ['tipe' => 'tugas', 'teks' => $t->nama_tugas];
+            }
+        }
+
         $absensi = Absensi::create([
             'user_id'         => $user->id,
             'waktu'           => $now,
+            'tgl'             => $ymd,
             'tanggal'         => $ymd,
             'status'          => 'pulang',
             'shift_id'        => $masuk->shift_id,
@@ -124,10 +140,32 @@ class AbsensiController extends Controller
             'lng'             => $request->input('lng'),
             'lokasi_text'     => $request->input('lokasi_text'),
             'kendala_hari_ini'=> $request->input('kendala_hari_ini'),
-            'todo'            => $request->input('todo_json'),
+            'todo'            => count($todoJsonData) > 0 ? json_encode($todoJsonData) : null,
             'ip_client'       => $request->ip(),
             'user_agent'      => Str::limit($request->userAgent(), 250),
         ]);
+
+        // Insert to absensi_todo
+        if (is_array($tugasIds) && count($tugasIds) > 0) {
+            foreach ($tugasIds as $tid) {
+                \App\Models\AbsensiTodo::create([
+                    'absensi_id' => $absensi->id,
+                    'sumber' => 'master',
+                    'master_id' => $tid,
+                    'is_done' => 1
+                ]);
+            }
+        }
+
+        if (!empty($todoNote)) {
+            \App\Models\AbsensiTodo::create([
+                'absensi_id' => $absensi->id,
+                'sumber' => 'manual',
+                'manual_judul' => 'Catatan',
+                'manual_detail' => $todoNote,
+                'is_done' => 1
+            ]);
+        }
 
         return response()->json([
             'ok'  => true,

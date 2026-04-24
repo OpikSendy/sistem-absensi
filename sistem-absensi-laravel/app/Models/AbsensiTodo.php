@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class AbsensiTodo extends Model
 {
     protected $table = 'absensi_todo';
+    public $timestamps = false;
 
     protected $fillable = [
         'absensi_id', 'sumber', 'master_id', 'sub_nama',

@@ -50,7 +50,8 @@ class UserController extends Controller
 
     public function absensi()
     {
-        return view('user.absensi');
+        $tugas = \App\Models\TugasMaster::where('aktif', 1)->orderBy('nama_tugas')->get();
+        return view('user.absensi', compact('tugas'));
     }
 
     public function profile()

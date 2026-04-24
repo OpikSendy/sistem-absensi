@@ -102,7 +102,16 @@
             </div>
             <div class="col-12">
               <label class="form-label small fw-semibold text-muted">Kategori</label>
-              <input type="text" name="kategori" class="form-control" placeholder="Opsional (Contoh: IT, Marketing, dll)">
+              <input type="text" name="kategori" class="form-control" list="kategoriList" placeholder="Pilih dari daftar atau ketik kategori baru...">
+              <datalist id="kategoriList">
+                <option value="IT & Support">
+                <option value="Marketing & Sales">
+                <option value="Finance & Accounting">
+                <option value="HRD & General Affair">
+                <option value="Operasional">
+                <option value="Administrasi">
+                <option value="Desain & Kreatif">
+              </datalist>
             </div>
             <div class="col-12">
               <label class="form-label small fw-semibold text-muted">Status *</label>
@@ -141,7 +150,7 @@
             </div>
             <div class="col-12">
               <label class="form-label small fw-semibold text-muted">Kategori</label>
-              <input type="text" name="kategori" id="edit_kategori" class="form-control">
+              <input type="text" name="kategori" id="edit_kategori" class="form-control" list="kategoriList" placeholder="Pilih dari daftar atau ketik kategori baru...">
             </div>
             <div class="col-12">
               <label class="form-label small fw-semibold text-muted">Status *</label>

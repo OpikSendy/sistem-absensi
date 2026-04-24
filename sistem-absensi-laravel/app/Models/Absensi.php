@@ -8,6 +8,9 @@ class Absensi extends Model
 {
     protected $table = 'absensi';
 
+    // Disable updated_at since legacy table doesn't have it
+    const UPDATED_AT = null;
+
     protected $fillable = [
         'user_id', 'waktu', 'tgl', 'tanggal', 'status',
         'shift_id', 'telat_menit', 'is_telat', 'approval_status',
