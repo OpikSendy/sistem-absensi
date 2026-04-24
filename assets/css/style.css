@@ -1,0 +1,273 @@
+/* assets/css/style.css - OPTIMIZED FOR MOBILE & LIGHT THEME */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Colors - Modern SaaS Palette */
+  --primary: #4f46e5;       /* Indigo 600 */
+  --primary-hover: #4338ca; /* Indigo 700 */
+  --bg-body: #f1f5f9;       /* Slate 100 */
+  --bg-card: #ffffff;
+  --text-main: #0f172a;     /* Slate 900 */
+  --text-body: #334155;     /* Slate 700 */
+  --text-muted: #64748b;    /* Slate 500 */
+  --border-color: #cbd5e1;  /* Slate 300 */
+  
+  --sidebar-width: 260px;
+}
+
+/* 1. GLOBAL RESET & TYPOGRAPHY (Android Friendly: uses rem) */
+* { box-sizing: border-box; }
+html { font-size: 16px; } /* Base size, acts like sp */
+
+body, html {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-body);
+  color: var(--text-body);
+  overflow: hidden; /* Prevent body scroll, handle inside content */
+}
+
+/* 2. LAYOUT STRUCTURE (Flexbox Sidebar + Content) */
+.app-layout {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Sidebar Desktop */
+.sidebar-panel {
+  width: var(--sidebar-width);
+  background: #fff;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  z-index: 1030; /* High z-index */
+}
+
+/* Main Content Area */
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  min-width: 0; /* Prevent flex blowout */
+}
+
+/* Navbar Sticky */
+.navbar-sticky {
+  background: #fff;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.75rem 1.25rem;
+  flex-shrink: 0;
+  z-index: 1020;
+}
+
+/* Scrollable Content */
+.content-scrollable {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1.5rem; /* Desktop padding */
+  background-color: var(--bg-body);
+  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS/Android */
+}
+
+/* 3. MOBILE OPTIMIZATION (< 992px) */
+@media (max-width: 991.98px) {
+  .sidebar-panel { display: none; } /* Hide desktop sidebar */
+  
+  .content-scrollable {
+    padding: 1rem; /* Smaller padding for mobile (approx 16dp) */
+  }
+  
+  .navbar-sticky {
+    padding: 0.75rem 1rem;
+  }
+  
+  /* Make buttons full width on small screens */
+  .btn-mobile-full { width: 100%; }
+}
+
+/* 4. COMPONENT: CARDS & FORMS */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  margin-bottom: 1.25rem;
+}
+.card-header {
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+  padding: 0.875rem 1.25rem;
+  color: var(--text-main);
+}
+.card-body { padding: 1.25rem; }
+
+.form-control, .form-select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  background-color: #fff;
+}
+.form-control:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+/* 5. BUTTONS (High Contrast & Touch Friendly) */
+.btn {
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  transition: all 0.2s;
+  min-height: 44px; /* Minimum touch target size for Android */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary, .btn-accent {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.btn-outline-light { /* FIX: Make it visible on white bg */
+  color: var(--text-body);
+  border-color: var(--border-color);
+  background: #fff;
+}
+.btn-outline-light:hover {
+  background-color: #f1f5f9;
+  color: var(--text-main);
+  border-color: #94a3b8;
+}
+
+/* 6. SIDEBAR MENU ITEMS */
+.rail-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px; margin: 4px 12px;
+  color: var(--text-body); text-decoration: none;
+  border-radius: 8px; font-weight: 500;
+  transition: 0.15s;
+  cursor: pointer;
+}
+.rail-item:hover { background-color: #f1f5f9; color: var(--primary); }
+.rail-item.active { background-color: #eef2ff; color: var(--primary); font-weight: 600; }
+.rail-dot { width: 24px; text-align: center; font-size: 1.15rem; }
+
+/* 7. MODAL FIX (Prevent Squashed Layout) */
+.modal-dialog {
+  max-width: 550px;
+  margin: 1.75rem auto;
+}
+@media (max-width: 576px) {
+  .modal-dialog { margin: 0.5rem; max-width: 100%; } /* Full width on mobile */
+}
+.modal-content {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* --- FIX FINAL: PAKSA SIDEBAR JADI PUTIH (USER & ADMIN) --- */
+
+/* 1. Paksa background Offcanvas (Sidebar HP) jadi Putih */
+.offcanvas, .offcanvas-start {
+  background-color: #ffffff !important;
+  color: #0f172a !important; /* Warna teks gelap */
+}
+
+/* 2. Pastikan tombol silang (Close) berwarna hitam */
+.offcanvas .btn-close {
+  filter: none !important; /* Hilangkan filter putih (jika ada) */
+  opacity: 0.8;
+}
+
+/* 3. Pastikan item menu User tidak ada background hitam */
+.rail-item {
+  background-color: transparent !important; /* Reset background */
+  color: #334155 !important; /* Warna teks abu tua */
+}
+
+/* 4. State Hover & Active (Biru Muda) */
+.rail-item:hover, .rail-item.active {
+  background-color: #eef2ff !important; /* Biru sangat muda */
+  color: #4f46e5 !important; /* Teks Biru Utama */
+}
+
+/* 5. Icon di dalam menu */
+.rail-item i, .rail-dot i {
+  color: inherit !important; /* Ikuti warna teks induknya */
+}
+
+/* --- TAMBAHAN FASE 1: DASHBOARD MODERN UTILS --- */
+
+/* 1. Icon Box (Lingkaran Icon di Widget) */
+.icon-box {
+  width: 48px; height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+.icon-box-primary { background-color: #eef2ff; color: #4f46e5; } /* Biru */
+.icon-box-success { background-color: #ecfdf5; color: #10b981; } /* Hijau */
+.icon-box-warning { background-color: #fffbeb; color: #f59e0b; } /* Kuning */
+.icon-box-danger  { background-color: #fef2f2; color: #ef4444; } /* Merah */
+
+/* 2. Soft Badges (Label Status Modern) */
+.badge-soft {
+  padding: 0.45em 0.8em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+}
+.badge-soft-success { background-color: #d1fae5; color: #065f46; }
+.badge-soft-warning { background-color: #fef3c7; color: #92400e; }
+.badge-soft-danger  { background-color: #fee2e2; color: #991b1b; }
+.badge-soft-secondary { background-color: #f1f5f9; color: #475569; }
+
+/* 3. Typography Dashboard */
+.text-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+}
+.text-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+/* --- FIX WARNA BADGE ADMIN (Agar Tidak Putih) --- */
+
+.badge-soft-primary {
+  background-color: #e0e7ff !important; /* Background Biru Sangat Muda */
+  color: #3730a3 !important;            /* Teks Biru Tua Gelap */
+  border: 1px solid #c7d2fe !important; /* Border Biru Tipis */
+}
+
+/* Pastikan badge user juga aman */
+.badge-soft-secondary {
+  background-color: #f1f5f9 !important; /* Abu Muda */
+  color: #475569 !important;            /* Abu Tua */
+  border: 1px solid #e2e8f0 !important;
+}
