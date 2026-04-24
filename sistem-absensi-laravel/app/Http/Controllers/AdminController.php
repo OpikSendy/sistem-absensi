@@ -53,20 +53,58 @@ class AdminController extends Controller
 
     public function storeUser(Request $request)
     {
-        // Phase 5
-        return back()->with('success', 'User ditambahkan.');
+        $validated = $request->validate([
+            'nama' => 'required|string|max:100',
+            'username' => 'required|string|max:50|unique:users,username',
+            'password' => 'required|string|min:6',
+            'role' => 'required|in:admin,user',
+            'devisi' => 'nullable|string|max:100',
+            'nim' => 'nullable|string|max:50',
+            'jurusan' => 'nullable|string|max:100',
+            'asal_sekolah' => 'nullable|string|max:150',
+            'no_hp' => 'nullable|string|max:20',
+            'aktif' => 'required|boolean',
+        ]);
+
+        $validated['password'] = \Illuminate\Support\Facades\Hash::make($validated['password']);
+
+        User::create($validated);
+
+        return back()->with('success', 'User berhasil ditambahkan.');
     }
 
     public function updateUser(Request $request, User $user)
     {
-        // Phase 5
-        return back()->with('success', 'User diperbarui.');
+        $validated = $request->validate([
+            'nama' => 'required|string|max:100',
+            'username' => 'required|string|max:50|unique:users,username,' . $user->id,
+            'role' => 'required|in:admin,user',
+            'devisi' => 'nullable|string|max:100',
+            'nim' => 'nullable|string|max:50',
+            'jurusan' => 'nullable|string|max:100',
+            'asal_sekolah' => 'nullable|string|max:150',
+            'no_hp' => 'nullable|string|max:20',
+            'aktif' => 'required|boolean',
+        ]);
+
+        if ($request->filled('password')) {
+            $request->validate(['password' => 'string|min:6']);
+            $validated['password'] = \Illuminate\Support\Facades\Hash::make($request->password);
+        }
+
+        $user->update($validated);
+
+        return back()->with('success', 'Data user berhasil diperbarui.');
     }
 
     public function destroyUser(User $user)
     {
-        // Phase 5
-        return back()->with('success', 'User dihapus.');
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'Tidak dapat menghapus akun Anda sendiri.');
+        }
+        
+        $user->delete();
+        return back()->with('success', 'User berhasil dihapus.');
     }
 
     public function shifts()

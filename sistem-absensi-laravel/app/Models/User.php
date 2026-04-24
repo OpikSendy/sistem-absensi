@@ -12,6 +12,9 @@ class User extends Authenticatable
 
     protected $table = 'users';
 
+    // Disable updated_at since legacy table doesn't have it
+    const UPDATED_AT = null;
+
     /**
      * Kolom yang bisa diisi massal.
      * Disesuaikan dengan tabel users di db_absensi_ks.
@@ -20,12 +23,17 @@ class User extends Authenticatable
         'username',
         'nama',
         'password',
-        'role',       // 'admin' | 'user'
+        'role',
         'devisi',
-        'aktif',      // 1 = aktif, 0 = nonaktif
+        'aktif',
         'email',
         'no_hp',
-        'avatar',
+        'foto',
+        'nim',
+        'jurusan',
+        'asal_sekolah',
+        'tanggal_lahir',
+        'no_hp_orangtua'
     ];
 
     protected $hidden = [
