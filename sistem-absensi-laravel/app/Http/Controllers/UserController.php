@@ -5,9 +5,30 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Absensi;
+use App\Models\User; // Tambahkan ini
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
+    /**
+     * Menampilkan Daftar Karyawan (Untuk Admin)
+     * Ini fungsi yang memperbaiki error 'hasPages'
+     */
+    public function index(Request $request)
+    {
+        $search = $request->query('search');
+
+        $users = User::when($search, function ($query) use ($search) {
+            $query->where('nama', 'like', "%{$search}%")
+                ->orWhere('username', 'like', "%{$search}%")
+                ->orWhere('devisi', 'like', "%{$search}%");
+        })
+            ->orderBy('id', 'desc')
+            ->paginate(10); // WAJIB paginate() agar hasPages() di Blade jalan
+
+        return view('admin.users', compact('users', 'search'));
+    }
+
     public function dashboard()
     {
         $user = Auth::user();
@@ -15,24 +36,20 @@ class UserController extends Controller
         $month = now()->format('m');
         $year = now()->format('Y');
 
-        // Total kehadiran (Absen Masuk yang di-approve / semua masuk)
         $totalKehadiran = Absensi::where('user_id', $user->id)
             ->where('status', 'masuk')
             ->count();
 
-        // Absen Masuk Hari Ini
         $absenMasukHariIni = Absensi::where('user_id', $user->id)
             ->where('tanggal', $today)
             ->where('status', 'masuk')
             ->first();
 
-        // Absen Pulang Hari Ini
         $absenPulangHariIni = Absensi::where('user_id', $user->id)
             ->where('tanggal', $today)
             ->where('status', 'pulang')
             ->first();
 
-        // Terlambat Bulan Ini
         $terlambatBulanIni = Absensi::where('user_id', $user->id)
             ->whereMonth('tanggal', $month)
             ->whereYear('tanggal', $year)
@@ -59,22 +76,44 @@ class UserController extends Controller
         return view('user.profile');
     }
 
+    /**
+     * Update Profile Terpadu
+     * Mencegah double notifikasi dan error kolom 'email'
+     */
     public function updateProfile(Request $request)
     {
-        // Phase 4
-        return back()->with('success', 'Profil diperbarui.');
+        $user = Auth::user();
+
+        $request->validate([
+            'nama' => 'required|string|max:255',
+            'username' => 'required|string|unique:users,username,' . $user->id,
+            'foto' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'password' => 'nullable|min:6|confirmed',
+        ]);
+
+        $data = $request->only(['nama', 'username', 'no_hp', 'devisi', 'nim', 'jurusan', 'asal_sekolah', 'tanggal_lahir']);
+
+        if ($request->filled('password')) {
+            $data['password'] = bcrypt($request->password);
+        }
+
+        if ($request->hasFile('foto')) {
+            // Hapus foto lama
+            if ($user->foto) {
+                Storage::disk('public')->delete($user->foto);
+            }
+            $data['foto'] = $request->file('foto')->store('uploads/profiles', 'public');
+        }
+
+        $user->update($data);
+
+        // Hanya kirim SATU session success
+        return back()->with('success', 'Profil berhasil diperbarui.');
     }
 
+    // Fungsi uploadAvatar & deleteAvatar bisa dikosongkan/dihapus jika sudah digabung ke updateProfile
     public function uploadAvatar(Request $request)
     {
-        // Phase 4
-        return back()->with('success', 'Avatar diperbarui.');
-    }
-
-    public function deleteAvatar(Request $request)
-    {
-        // Phase 4
-        return back()->with('success', 'Avatar dihapus.');
+        return $this->updateProfile($request);
     }
 }
-

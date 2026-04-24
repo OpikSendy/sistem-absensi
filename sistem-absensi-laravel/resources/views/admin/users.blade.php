@@ -24,7 +24,8 @@
   @endif
 
   <div class="card shadow-sm border-0 mb-4">
-    <div class="card-header bg-white border-bottom-0 pt-4 pb-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div
+      class="card-header bg-white border-bottom-0 pt-4 pb-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
       <h6 class="fw-bold mb-0">Daftar Karyawan</h6>
       <div class="d-flex gap-2">
         <form action="{{ route('admin.users') }}" method="GET" class="d-flex position-relative">
@@ -32,7 +33,8 @@
           <input type="text" name="search" class="form-control form-control-sm rounded-pill ps-5"
             placeholder="Cari nama/divisi..." value="{{ $search ?? '' }}">
         </form>
-        <button class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalUser">
+        <button class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold" data-bs-toggle="modal"
+          data-bs-target="#modalUser">
           <i class="bi bi-plus-lg me-1"></i>Tambah
         </button>
       </div>
@@ -57,20 +59,25 @@
                 <td class="ps-4">
                   <div class="d-flex align-items-center gap-2">
                     @if($u->foto)
-                      <img src="{{ asset('storage/' . $u->foto) }}" class="rounded-circle object-fit-cover" width="36" height="36">
+                      <img src="{{ asset('storage/' . $u->foto) }}" class="rounded-circle object-fit-cover" width="36"
+                        height="36">
                     @else
-                      <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width:36px; height:36px; font-size:.9rem;">
+                      <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                        style="width:36px; height:36px; font-size:.9rem;">
                         {{ strtoupper(substr($u->nama, 0, 2)) }}
                       </div>
                     @endif
                     <div>
                       <div class="fw-semibold text-dark">{{ $u->nama }}</div>
-                      <div class="text-muted" style="font-size:.75rem;">Terdaftar: {{ Carbon\Carbon::parse($u->created_at)->format('d M Y') }}</div>
+                      <div class="text-muted" style="font-size:.75rem;">Terdaftar:
+                        {{ Carbon\Carbon::parse($u->created_at)->format('d M Y') }}
+                      </div>
                     </div>
                   </div>
                 </td>
                 <td>
-                  <span class="badge bg-{{ $u->role === 'admin' ? 'danger' : 'primary' }} bg-opacity-10 text-{{ $u->role === 'admin' ? 'danger' : 'primary' }} border border-{{ $u->role === 'admin' ? 'danger' : 'primary' }} border-opacity-25">
+                  <span
+                    class="badge bg-{{ $u->role === 'admin' ? 'danger' : 'primary' }} bg-opacity-10 text-{{ $u->role === 'admin' ? 'danger' : 'primary' }} border border-{{ $u->role === 'admin' ? 'danger' : 'primary' }} border-opacity-25">
                     {{ ucfirst($u->role) }}
                   </span>
                 </td>
@@ -85,9 +92,11 @@
                   @endif
                 </td>
                 <td class="pe-4 text-end">
-                  <button class="btn btn-sm btn-light border text-primary" title="Edit Data" onclick='editUser(@json($u))'><i class="bi bi-pencil"></i></button>
+                  <button class="btn btn-sm btn-light border text-primary" title="Edit Data"
+                    onclick='editUser(@json($u))'><i class="bi bi-pencil"></i></button>
                   @if($u->id !== auth()->id())
-                    <button class="btn btn-sm btn-light border text-danger" title="Hapus" onclick="deleteUser({{ $u->id }}, '{{ $u->nama }}')"><i class="bi bi-trash"></i></button>
+                    <button class="btn btn-sm btn-light border text-danger" title="Hapus"
+                      onclick="deleteUser({{ $u->id }}, '{{ $u->nama }}')"><i class="bi bi-trash"></i></button>
                   @endif
                 </td>
               </tr>
@@ -191,7 +200,8 @@
               </div>
               <div class="col-md-6">
                 <label class="form-label small fw-semibold text-muted">Password</label>
-                <input type="password" name="password" class="form-control" minlength="6" placeholder="Biarkan kosong jika tidak diubah">
+                <input type="password" name="password" class="form-control" minlength="6"
+                  placeholder="Biarkan kosong jika tidak diubah">
               </div>
               <div class="col-md-6">
                 <label class="form-label small fw-semibold text-muted">Role *</label>
@@ -223,7 +233,11 @@
           </div>
           <div class="modal-footer border-top-0 pt-0">
             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
-            <button type="submit" class="btn btn-primary px-4 fw-semibold rounded-pill">Simpan Perubahan</button>
+            {{-- Tambahkan class btn-primary dan logic disable-on-click --}}
+            <button type="submit" class="btn btn-primary px-4 fw-semibold rounded-pill"
+              onclick="if(this.form.checkValidity()){ this.disabled=true; this.form.submit(); }">
+              Simpan Perubahan
+            </button>
           </div>
         </form>
       </div>
@@ -239,26 +253,26 @@
 @endsection
 
 @section('scripts')
-<script>
-  function editUser(user) {
-    document.getElementById('formEditUser').action = `/admin/users/${user.id}`;
-    document.getElementById('edit_nama').value = user.nama;
-    document.getElementById('edit_username').value = user.username;
-    document.getElementById('edit_role').value = user.role;
-    document.getElementById('edit_devisi').value = user.devisi || '';
-    document.getElementById('edit_nim').value = user.nim || '';
-    document.getElementById('edit_no_hp').value = user.no_hp || '';
-    document.getElementById('edit_aktif').value = user.aktif;
-    
-    new bootstrap.Modal(document.getElementById('modalEditUser')).show();
-  }
+  <script>
+    function editUser(user) {
+      document.getElementById('formEditUser').action = `/admin/users/${user.id}`;
+      document.getElementById('edit_nama').value = user.nama;
+      document.getElementById('edit_username').value = user.username;
+      document.getElementById('edit_role').value = user.role;
+      document.getElementById('edit_devisi').value = user.devisi || '';
+      document.getElementById('edit_nim').value = user.nim || '';
+      document.getElementById('edit_no_hp').value = user.no_hp || '';
+      document.getElementById('edit_aktif').value = user.aktif;
 
-  function deleteUser(id, nama) {
-    if (confirm(`Yakin ingin menghapus karyawan "${nama}"? Semua data absensi terkait juga akan terhapus.`)) {
-      const form = document.getElementById('formDelete');
-      form.action = `/admin/users/${id}`;
-      form.submit();
+      new bootstrap.Modal(document.getElementById('modalEditUser')).show();
     }
-  }
-</script>
+
+    function deleteUser(id, nama) {
+      if (confirm(`Yakin ingin menghapus karyawan "${nama}"? Semua data absensi terkait juga akan terhapus.`)) {
+        const form = document.getElementById('formDelete');
+        form.action = `/admin/users/${id}`;
+        form.submit();
+      }
+    }
+  </script>
 @endsection
