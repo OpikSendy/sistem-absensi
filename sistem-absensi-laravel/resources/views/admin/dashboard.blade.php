@@ -78,7 +78,10 @@
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-header bg-white border-bottom-0 pt-4 pb-3 d-flex justify-content-between align-items-center">
     <h6 class="fw-bold mb-0">Log Kehadiran Terbaru</h6>
-    <a href="#" class="btn btn-sm btn-outline-secondary"><i class="bi bi-filter me-1"></i> Filter</a>
+    <div class="d-flex gap-2">
+      <a href="{{ route('admin.export.excel') }}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i> Export Excel</a>
+      <a href="{{ route('admin.export.pdf') }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-earmark-pdf me-1"></i> Export PDF</a>
+    </div>
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
