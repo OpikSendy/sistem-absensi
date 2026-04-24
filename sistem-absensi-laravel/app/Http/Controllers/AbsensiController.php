@@ -138,13 +138,28 @@ class AbsensiController extends Controller
 
     public function updateStatus(Request $request)
     {
-        // Phase 5
-        return response()->json(['ok' => false, 'msg' => 'Belum diimplementasikan (Phase 5).']);
+        $absensi = Absensi::find($request->input('id'));
+        if (!$absensi) {
+            return response()->json(['ok' => false, 'msg' => 'Data tidak ditemukan.']);
+        }
+
+        $approval = $request->input('approval');
+
+        if ($approval === 'delete') {
+            $absensi->delete();
+            return response()->json(['ok' => true, 'msg' => 'Data berhasil dihapus.']);
+        }
+
+        if (!in_array($approval, ['Disetujui', 'Ditolak'])) {
+            return response()->json(['ok' => false, 'msg' => 'Status tidak valid.']);
+        }
+
+        $absensi->update(['approval_status' => $approval]);
+        return response()->json(['ok' => true, 'msg' => "Status berhasil diubah menjadi {$approval}."]);
     }
 
     public function detail(Absensi $absensi)
     {
-        // Phase 5
         return response()->json($absensi->load('user', 'shift', 'todos'));
     }
 
