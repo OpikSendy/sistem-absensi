@@ -86,6 +86,8 @@ class AbsensiController extends Controller
                 'user_agent'      => Str::limit($request->userAgent(), 250),
             ]);
 
+            $this->notifyAdmins('absen_masuk', 'Absen Masuk: ' . $user->nama, "{$user->nama} telah melakukan absen masuk.", $absensi->id);
+
             return response()->json([
                 'ok'  => true,
                 'msg' => 'Absensi masuk berhasil dicatat.',
@@ -167,11 +169,34 @@ class AbsensiController extends Controller
             ]);
         }
 
+        $this->notifyAdmins('absen_pulang', 'Absen Pulang: ' . $user->nama, "{$user->nama} telah melakukan absen pulang.", $absensi->id);
+
         return response()->json([
             'ok'  => true,
             'msg' => 'Absensi pulang berhasil dicatat.',
             'redirect_url' => route('user.dashboard'),
         ]);
+    }
+
+    private function notifyAdmins($type, $title, $message, $absensiId)
+    {
+        $admins = \App\Models\User::where('role', 'admin')->where('aktif', 1)->pluck('id');
+        $notifications = [];
+        $now = now();
+        foreach ($admins as $adminId) {
+            $notifications[] = [
+                'user_id' => $adminId,
+                'absensi_id' => $absensiId,
+                'type' => $type,
+                'title' => $title,
+                'message' => $message,
+                'is_read' => 0,
+                'created_at' => $now
+            ];
+        }
+        if (count($notifications) > 0) {
+            \App\Models\Notification::insert($notifications);
+        }
     }
 
     public function updateStatus(Request $request)

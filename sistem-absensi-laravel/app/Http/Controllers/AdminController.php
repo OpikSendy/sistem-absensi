@@ -124,7 +124,10 @@ class AdminController extends Controller
             'aktif' => 'required|boolean',
         ]);
 
-        ShiftMaster::create($validated);
+        $shift = ShiftMaster::create($validated);
+        
+        $this->notifyUsers('shift_baru', 'Shift Baru Ditambahkan', "Shift '{$shift->nama_shift}' telah ditambahkan oleh Admin.");
+
         return back()->with('success', 'Shift kerja berhasil ditambahkan.');
     }
 
@@ -140,12 +143,14 @@ class AdminController extends Controller
         ]);
 
         $shift->update($validated);
+
+        $this->notifyUsers('shift_update', 'Perubahan Shift', "Shift '{$shift->nama_shift}' telah diperbarui oleh Admin.");
+
         return back()->with('success', 'Data shift kerja berhasil diperbarui.');
     }
 
     public function destroyShift(ShiftMaster $shift)
     {
-        // Pastikan tidak ada data user jadwal atau user shift yang masih terkait
         if ($shift->userShifts()->exists() || \App\Models\UserJadwal::where('shift_id', $shift->id)->exists() || $shift->absensi()->exists()) {
             return back()->withErrors(['Hapus Gagal' => 'Shift ini tidak dapat dihapus karena masih digunakan dalam jadwal karyawan atau rekam absensi.']);
         }
@@ -168,7 +173,10 @@ class AdminController extends Controller
             'aktif' => 'required|boolean',
         ]);
 
-        \App\Models\TugasMaster::create($validated);
+        $tugas = \App\Models\TugasMaster::create($validated);
+
+        $this->notifyUsers('tugas_baru', 'Tugas Baru Ditambahkan', "Master tugas '{$tugas->nama_tugas}' telah ditambahkan oleh Admin.");
+
         return back()->with('success', 'Master Tugas berhasil ditambahkan.');
     }
 
@@ -181,7 +189,30 @@ class AdminController extends Controller
         ]);
 
         $tugas->update($validated);
+
+        $this->notifyUsers('tugas_update', 'Perubahan Tugas', "Master tugas '{$tugas->nama_tugas}' telah diperbarui oleh Admin.");
+
         return back()->with('success', 'Data Master Tugas berhasil diperbarui.');
+    }
+
+    private function notifyUsers($type, $title, $message)
+    {
+        $users = \App\Models\User::where('role', 'user')->where('aktif', 1)->pluck('id');
+        $notifications = [];
+        $now = now();
+        foreach ($users as $userId) {
+            $notifications[] = [
+                'user_id' => $userId,
+                'type' => $type,
+                'title' => $title,
+                'message' => $message,
+                'is_read' => 0,
+                'created_at' => $now
+            ];
+        }
+        if (count($notifications) > 0) {
+            \App\Models\Notification::insert($notifications);
+        }
     }
 
     public function destroyTugas(\App\Models\TugasMaster $tugas)

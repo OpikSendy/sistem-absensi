@@ -15,6 +15,11 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// ─── Global Notifications ──────────────────────────────────────────────────
+Route::middleware('auth')->group(function () {
+    Route::get('/notifications/unread', [\App\Http\Controllers\NotificationController::class, 'unread'])->name('notifications.unread');
+    Route::post('/notifications/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
+});
 // ─── User Area ───────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:user'])
     ->prefix('user')

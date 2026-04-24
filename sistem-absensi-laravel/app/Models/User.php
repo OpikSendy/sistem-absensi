@@ -26,7 +26,6 @@ class User extends Authenticatable
         'role',
         'devisi',
         'aktif',
-        'email',
         'no_hp',
         'foto',
         'nim',
@@ -45,7 +44,7 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
-            'aktif'    => 'integer',
+            'aktif' => 'integer',
         ];
     }
 

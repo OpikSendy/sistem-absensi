@@ -198,10 +198,18 @@
     <span class="topbar-title d-none d-md-block">@yield('page-title', 'Dashboard')</span>
   </div>
   <div class="topbar-right">
-    {{-- Notifikasi (placeholder) --}}
-    <button class="btn btn-sm btn-light position-relative border" id="btnNotif">
-      <i class="bi bi-bell"></i>
-    </button>
+    {{-- Notifikasi --}}
+    <div class="dropdown">
+      <button class="btn btn-sm btn-light position-relative border" id="btnNotif" data-bs-toggle="dropdown" aria-expanded="false" onclick="markNotificationsRead()">
+        <i class="bi bi-bell"></i>
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" id="notifBadge">
+          0
+        </span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-0" style="width: 320px; max-height: 400px; overflow-y: auto;" id="notifDropdown">
+        <li class="p-3 text-center text-muted small" id="notifEmpty">Belum ada notifikasi.</li>
+      </ul>
+    </div>
 
     {{-- User dropdown --}}
     <div class="dropdown">
@@ -266,6 +274,8 @@
   </div>
 </main>
 
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer" style="z-index: 1055;"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   // Toggle sidebar
@@ -299,6 +309,102 @@
       link.classList.add('active');
     }
   });
+
+  // Notifications Logic
+  const notifBadge = document.getElementById('notifBadge');
+  const notifDropdown = document.getElementById('notifDropdown');
+  let lastNotifIds = [];
+
+  function fetchNotifications() {
+    fetch("{{ route('notifications.unread') }}")
+      .then(res => res.json())
+      .then(data => {
+        if (data.count > 0) {
+          notifBadge.textContent = data.count;
+          notifBadge.classList.remove('d-none');
+          
+          let html = '';
+          let newNotifs = [];
+          
+          data.data.forEach(n => {
+            if (!lastNotifIds.includes(n.id) && lastNotifIds.length > 0) {
+              newNotifs.push(n);
+            }
+            
+            html += `
+              <li class="border-bottom">
+                <a class="dropdown-item py-2 px-3 text-wrap" href="#">
+                  <div class="fw-bold small mb-1">${n.title}</div>
+                  <div class="text-muted" style="font-size: 0.75rem;">${n.message}</div>
+                  <div class="text-muted mt-1" style="font-size: 0.65rem;">${new Date(n.created_at).toLocaleString('id-ID')}</div>
+                </a>
+              </li>
+            `;
+          });
+          
+          notifDropdown.innerHTML = html;
+          
+          // Save current IDs
+          lastNotifIds = data.data.map(n => n.id);
+          
+          // Show toasts for new notifications
+          newNotifs.forEach(n => showToast(n.title, n.message));
+        } else {
+          notifBadge.classList.add('d-none');
+          notifDropdown.innerHTML = '<li class="p-3 text-center text-muted small" id="notifEmpty">Belum ada notifikasi.</li>';
+          lastNotifIds = [];
+        }
+      })
+      .catch(err => console.error("Error fetching notifications", err));
+  }
+
+  function markNotificationsRead() {
+    if (notifBadge.classList.contains('d-none')) return;
+    
+    fetch("{{ route('notifications.read') }}", {
+      method: "POST",
+      headers: {
+        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+        "Accept": "application/json"
+      }
+    }).then(res => res.json()).then(data => {
+      if (data.ok) {
+        notifBadge.classList.add('d-none');
+        notifBadge.textContent = '0';
+      }
+    });
+  }
+
+  function showToast(title, message) {
+    const toastHtml = `
+      <div class="toast show border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header border-bottom-0 bg-primary text-white">
+          <i class="bi bi-bell-fill me-2"></i>
+          <strong class="me-auto">${title}</strong>
+          <small>Baru saja</small>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body bg-white text-dark" style="font-size: 0.85rem;">
+          ${message}
+        </div>
+      </div>
+    `;
+    const container = document.getElementById('toastContainer');
+    container.insertAdjacentHTML('beforeend', toastHtml);
+    
+    const toasts = container.querySelectorAll('.toast');
+    const newToast = toasts[toasts.length - 1];
+    
+    setTimeout(() => {
+      newToast.classList.remove('show');
+      setTimeout(() => newToast.remove(), 300);
+    }, 5000);
+  }
+
+  // Initial fetch
+  fetchNotifications();
+  // Poll every 15 seconds
+  setInterval(fetchNotifications, 15000);
 </script>
 
 @yield('scripts')
