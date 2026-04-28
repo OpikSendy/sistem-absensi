@@ -22,6 +22,9 @@
     <a href="{{ route('admin.tugas') }}" class="{{ request()->routeIs('admin.tugas') ? 'active' : '' }}">
       <i class="bi bi-list-check"></i> Master Tugas
     </a>
+    <a href="{{ route('admin.penugasan') }}" class="{{ request()->routeIs('admin.penugasan') ? 'active' : '' }}">
+      <i class="bi bi-clipboard-check"></i> Penugasan Karyawan
+    </a>
   </nav>
 
   <div class="sidebar-section mt-3">Laporan & Pengaturan</div>
@@ -46,6 +49,9 @@
     </a>
     <a href="{{ route('user.absensi') }}" class="{{ request()->routeIs('user.absensi') ? 'active' : '' }}">
       <i class="bi bi-calendar-check"></i> Absensi
+    </a>
+    <a href="{{ route('user.tugas') }}" class="{{ request()->routeIs('user.tugas') ? 'active' : '' }}">
+      <i class="bi bi-clipboard-check"></i> Tugas Saya
     </a>
     <a href="{{ route('user.profile') }}" class="{{ request()->routeIs('user.profile') ? 'active' : '' }}">
       <i class="bi bi-person-circle"></i> Profil Saya

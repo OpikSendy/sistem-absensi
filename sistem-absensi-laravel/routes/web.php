@@ -32,6 +32,10 @@ Route::middleware(['auth', 'role:user'])
         Route::post('/avatar/upload', [UserController::class, 'uploadAvatar'])->name('avatar.upload');
         Route::delete('/avatar', [UserController::class, 'deleteAvatar'])->name('avatar.delete');
 
+        // Tugas Karyawan
+        Route::get('/tugas', [UserController::class, 'tugas'])->name('tugas');
+        Route::put('/tugas/{id}', [UserController::class, 'updateTugasStatus'])->name('tugas.update');
+
         // Absensi actions (AJAX/JSON)
         Route::post('/absensi/store', [AbsensiController::class, 'store'])->name('absensi.store');
     });
@@ -57,6 +61,12 @@ Route::middleware(['auth', 'role:admin'])
         Route::post('/tugas', [AdminController::class, 'storeTugas'])->name('tugas.store');
         Route::put('/tugas/{tugas}', [AdminController::class, 'updateTugas'])->name('tugas.update');
         Route::delete('/tugas/{tugas}', [AdminController::class, 'destroyTugas'])->name('tugas.destroy');
+
+        // Penugasan Karyawan
+        Route::get('/penugasan', [App\Http\Controllers\PenugasanController::class, 'index'])->name('penugasan');
+        Route::post('/penugasan', [App\Http\Controllers\PenugasanController::class, 'store'])->name('penugasan.store');
+        Route::put('/penugasan/{id}', [App\Http\Controllers\PenugasanController::class, 'update'])->name('penugasan.update');
+        Route::delete('/penugasan/{id}', [App\Http\Controllers\PenugasanController::class, 'destroy'])->name('penugasan.destroy');
 
         // Absensi management (AJAX/JSON)
         Route::post('/absensi/status', [AbsensiController::class, 'updateStatus'])->name('absensi.status');

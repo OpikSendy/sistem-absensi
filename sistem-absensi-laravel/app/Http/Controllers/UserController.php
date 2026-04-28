@@ -5,11 +5,41 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Absensi;
-use App\Models\User; // Tambahkan ini
+use App\Models\User;
+use App\Models\TugasKaryawan;
 use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
+    public function tugas()
+    {
+        $user = Auth::user();
+        $tugas = TugasKaryawan::with('master')
+            ->where('user_id', $user->id)
+            ->orderByRaw("FIELD(status, 'Pending', 'In Progress', 'Completed')")
+            ->orderBy('tenggat_waktu', 'asc')
+            ->get();
+
+        return view('user.tugas', compact('tugas'));
+    }
+
+    public function updateTugasStatus(Request $request, $id)
+    {
+        $tugas = TugasKaryawan::where('user_id', Auth::id())->findOrFail($id);
+
+        $request->validate([
+            'status' => 'required|in:Pending,In Progress,Completed',
+            'catatan_karyawan' => 'nullable|string'
+        ]);
+
+        $tugas->update([
+            'status' => $request->status,
+            'catatan_karyawan' => $request->catatan_karyawan
+        ]);
+
+        return back()->with('success', 'Status tugas berhasil diperbarui.');
+    }
+
     /**
      * Menampilkan Daftar Karyawan (Untuk Admin)
      * Ini fungsi yang memperbaiki error 'hasPages'
