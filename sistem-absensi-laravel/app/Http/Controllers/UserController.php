@@ -152,4 +152,61 @@ class UserController extends Controller
     {
         return $this->updateProfile($request);
     }
+
+    // ─── Analytics ─────────────────────────────────────────────────────────────
+
+    public function getMyDisciplineData()
+    {
+        $userId = Auth::id();
+        $month = now()->month;
+        $year = now()->year;
+
+        $absensi = Absensi::where('user_id', $userId)
+            ->where('status', 'masuk')
+            ->whereMonth('tanggal', $month)
+            ->whereYear('tanggal', $year)
+            ->orderBy('tanggal', 'asc')
+            ->get();
+
+        $labels = [];
+        $onTimeData = [];
+        $lateData = [];
+
+        foreach ($absensi as $record) {
+            $labels[] = \Carbon\Carbon::parse($record->tanggal)->format('d M');
+            if ($record->is_telat) {
+                $onTimeData[] = 0;
+                $lateData[] = 1;
+            } else {
+                $onTimeData[] = 1;
+                $lateData[] = 0;
+            }
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'onTime' => $onTimeData,
+            'late' => $lateData
+        ]);
+    }
+
+    public function getMyDistributionData()
+    {
+        $userId = Auth::id();
+        $month = now()->month;
+        $year = now()->year;
+
+        $query = Absensi::where('user_id', $userId)
+            ->whereMonth('tanggal', $month)
+            ->whereYear('tanggal', $year);
+
+        $onTime = (clone $query)->where('status', 'masuk')->where('is_telat', 0)->count();
+        $late = (clone $query)->where('status', 'masuk')->where('is_telat', 1)->count();
+        $izin = (clone $query)->whereIn('status', ['izin', 'sakit'])->count();
+
+        return response()->json([
+            'labels' => ['Tepat Waktu', 'Terlambat', 'Izin/Sakit'],
+            'data' => [$onTime, $late, $izin]
+        ]);
+    }
 }

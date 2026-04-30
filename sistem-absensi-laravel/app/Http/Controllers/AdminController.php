@@ -22,12 +22,16 @@ class AdminController extends Controller
             ->orderBy('waktu', 'desc')
             ->paginate(15);
 
+        // Ambil data semua user untuk dropdown filter chart
+        $allUsers = User::where('role', 'user')->where('aktif', 1)->orderBy('nama')->get();
+
         return view('admin.dashboard', compact(
             'totalKaryawan', 
             'hadirHariIni', 
             'terlambatHariIni', 
             'pendingApproval',
-            'recentAbsensi'
+            'recentAbsensi',
+            'allUsers'
         ));
     }
 
@@ -321,6 +325,106 @@ class AdminController extends Controller
         $user->update($validated);
 
         return back()->with('success', 'Profil admin berhasil diperbarui.');
+    }
+
+    // ─── Analytics ─────────────────────────────────────────────────────────────
+
+    public function getRankingData()
+    {
+        $startOfWeek = now()->startOfWeek()->format('Y-m-d');
+        $endOfWeek = now()->endOfWeek()->format('Y-m-d');
+
+        // Top 5 users based on most "Tepat Waktu" attendance this week
+        $ranking = \App\Models\Absensi::selectRaw('user_id, count(*) as total_tepat_waktu')
+            ->whereBetween('tanggal', [$startOfWeek, $endOfWeek])
+            ->where('status', 'masuk')
+            ->where('is_telat', 0)
+            ->groupBy('user_id')
+            ->orderByDesc('total_tepat_waktu')
+            ->limit(5)
+            ->with('user:id,nama,foto')
+            ->get();
+
+        $labels = [];
+        $data = [];
+        foreach ($ranking as $rank) {
+            $labels[] = $rank->user->nama ?? 'Unknown';
+            $data[] = $rank->total_tepat_waktu;
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'data' => $data
+        ]);
+    }
+
+    public function getUserDisciplineData(Request $request)
+    {
+        $userId = $request->input('user_id');
+        $month = now()->month;
+        $year = now()->year;
+
+        $query = \App\Models\Absensi::where('status', 'masuk')
+            ->whereMonth('tanggal', $month)
+            ->whereYear('tanggal', $year);
+
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
+        $absensi = $query->orderBy('tanggal', 'asc')->get();
+
+        $grouped = $absensi->groupBy('tanggal');
+        
+        $labels = [];
+        $onTimeData = [];
+        $lateData = [];
+
+        foreach ($grouped as $tanggal => $records) {
+            $labels[] = \Carbon\Carbon::parse($tanggal)->format('d M');
+            $onTimeCount = $records->where('is_telat', 0)->count();
+            $lateCount = $records->where('is_telat', 1)->count();
+            
+            $onTimeData[] = $onTimeCount;
+            $lateData[] = $lateCount;
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'onTime' => $onTimeData,
+            'late' => $lateData
+        ]);
+    }
+
+    public function getUserDistributionData(Request $request)
+    {
+        $userId = $request->input('user_id');
+        $month = now()->month;
+        $year = now()->year;
+
+        $query = \App\Models\Absensi::where('status', 'masuk')
+            ->whereMonth('tanggal', $month)
+            ->whereYear('tanggal', $year);
+
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
+        $onTime = (clone $query)->where('is_telat', 0)->count();
+        $late = (clone $query)->where('is_telat', 1)->count();
+        
+        $queryIzin = \App\Models\Absensi::whereIn('status', ['izin', 'sakit'])
+            ->whereMonth('tanggal', $month)
+            ->whereYear('tanggal', $year);
+        if ($userId) {
+            $queryIzin->where('user_id', $userId);
+        }
+        $izin = $queryIzin->count();
+
+        return response()->json([
+            'labels' => ['Tepat Waktu', 'Terlambat', 'Izin/Sakit'],
+            'data' => [$onTime, $late, $izin]
+        ]);
     }
 }
 

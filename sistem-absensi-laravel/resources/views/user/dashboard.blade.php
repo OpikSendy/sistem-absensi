@@ -167,4 +167,99 @@
   </div>
 </div>
 
+{{-- Analitik Kehadiran Saya --}}
+<div class="row g-4 mt-1 mb-4">
+  <div class="col-12 col-xl-8">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+        <h6 class="fw-bold mb-0">Tren Kedisiplinan Saya</h6>
+        <p class="text-muted small mb-0">Bulan Ini</p>
+      </div>
+      <div class="card-body">
+        <canvas id="myDisciplineChart" style="max-height: 250px;"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-white border-bottom-0 pt-4 pb-0 text-center">
+        <h6 class="fw-bold mb-0">Distribusi Kehadiran</h6>
+        <p class="text-muted small mb-0">Bulan Ini</p>
+      </div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <canvas id="myDistributionChart" style="max-height: 220px;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+@endsection
+
+@section('scripts')
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    let disciplineChart, distributionChart;
+
+    // Fetch Discipline
+    fetch('{{ route("user.analytics.my_discipline") }}')
+      .then(res => res.json())
+      .then(data => {
+        const ctx = document.getElementById('myDisciplineChart').getContext('2d');
+        disciplineChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                label: 'Tepat Waktu',
+                data: data.onTime,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                fill: true,
+                tension: 0.3
+              },
+              {
+                label: 'Terlambat',
+                data: data.late,
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                fill: true,
+                tension: 0.3
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+          }
+        });
+      });
+
+    // Fetch Distribution
+    fetch('{{ route("user.analytics.my_distribution") }}')
+      .then(res => res.json())
+      .then(data => {
+        const ctx = document.getElementById('myDistributionChart').getContext('2d');
+        distributionChart = new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: data.labels,
+            datasets: [{
+              data: data.data,
+              backgroundColor: ['#10b981', '#ef4444', '#6b7280'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 12 } } }
+            }
+          }
+        });
+      });
+  });
+</script>
 @endsection

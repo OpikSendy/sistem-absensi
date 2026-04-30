@@ -38,6 +38,10 @@ Route::middleware(['auth', 'role:user'])
 
         // Absensi actions (AJAX/JSON)
         Route::post('/absensi/store', [AbsensiController::class, 'store'])->name('absensi.store');
+
+        // Analytics
+        Route::get('/analytics/my-discipline', [UserController::class, 'getMyDisciplineData'])->name('analytics.my_discipline');
+        Route::get('/analytics/my-distribution', [UserController::class, 'getMyDistributionData'])->name('analytics.my_distribution');
     });
 
 // ─── Admin Area ──────────────────────────────────────────────────────────────
@@ -86,5 +90,10 @@ Route::middleware(['auth', 'role:admin'])
         Route::get('/export/pdf', [ExportController::class, 'exportPdf'])->name('export.pdf');
         Route::get('/export/rekap/excel', [ExportController::class, 'exportRekapExcel'])->name('export.rekap.excel');
         Route::get('/export/rekap/pdf', [ExportController::class, 'exportRekapPdf'])->name('export.rekap.pdf');
+
+        // Analytics
+        Route::get('/analytics/ranking', [AdminController::class, 'getRankingData'])->name('analytics.ranking');
+        Route::get('/analytics/user-discipline', [AdminController::class, 'getUserDisciplineData'])->name('analytics.user_discipline');
+        Route::get('/analytics/user-distribution', [AdminController::class, 'getUserDistributionData'])->name('analytics.user_distribution');
     });
 

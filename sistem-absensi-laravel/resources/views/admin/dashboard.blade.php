@@ -74,6 +74,52 @@
   </div>
 </div>
 
+{{-- Analitik & Statistik --}}
+<div class="row g-3 mb-4">
+  {{-- Top 5 Ranking --}}
+  <div class="col-12 col-xl-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+        <h6 class="fw-bold mb-0">Top 5 Karyawan Tepat Waktu</h6>
+        <p class="text-muted small mb-0">Minggu Ini</p>
+      </div>
+      <div class="card-body">
+        <canvas id="rankingChart" style="max-height: 250px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  {{-- Kedisiplinan & Distribusi --}}
+  <div class="col-12 col-xl-8">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+        <div>
+          <h6 class="fw-bold mb-0">Analitik Kehadiran Karyawan</h6>
+          <p class="text-muted small mb-0">Bulan Ini</p>
+        </div>
+        <div style="width: 200px;">
+          <select id="userFilter" class="form-select form-select-sm shadow-none">
+            <option value="">Semua Karyawan</option>
+            @foreach($allUsers as $u)
+              <option value="{{ $u->id }}">{{ $u->nama }}</option>
+            @endforeach
+          </select>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row h-100">
+          <div class="col-md-8 border-end">
+            <canvas id="disciplineChart" style="max-height: 250px;"></canvas>
+          </div>
+          <div class="col-md-4 d-flex align-items-center justify-content-center">
+            <canvas id="distributionChart" style="max-height: 200px;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {{-- Tabel Data Kehadiran --}}
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-header bg-white border-bottom-0 pt-4 pb-3 d-flex justify-content-between align-items-center">
@@ -266,5 +312,116 @@
       }
     });
   }
+
+  // ─── Analytics Chart.js ──────────────────────────────────────────────────
+  document.addEventListener("DOMContentLoaded", function() {
+    let rankingChart, disciplineChart, distributionChart;
+
+    function initCharts() {
+      // Fetch Ranking
+      fetch('{{ route("admin.analytics.ranking") }}')
+        .then(res => res.json())
+        .then(data => {
+          const ctx = document.getElementById('rankingChart').getContext('2d');
+          rankingChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: data.labels,
+              datasets: [{
+                label: 'Tepat Waktu',
+                data: data.data,
+                backgroundColor: '#3b82f6',
+                borderRadius: 4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } }
+              },
+              plugins: { legend: { display: false } }
+            }
+          });
+        });
+
+      // Fetch User Analytics (Discipline & Distribution)
+      loadUserAnalytics('');
+
+      // Listener for filter
+      document.getElementById('userFilter').addEventListener('change', function() {
+        loadUserAnalytics(this.value);
+      });
+    }
+
+    function loadUserAnalytics(userId) {
+      // Fetch Discipline
+      fetch('{{ route("admin.analytics.user_discipline") }}?user_id=' + userId)
+        .then(res => res.json())
+        .then(data => {
+          if (disciplineChart) disciplineChart.destroy();
+          const ctx = document.getElementById('disciplineChart').getContext('2d');
+          disciplineChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: data.labels,
+              datasets: [
+                {
+                  label: 'Tepat Waktu',
+                  data: data.onTime,
+                  borderColor: '#10b981',
+                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                  fill: true,
+                  tension: 0.3
+                },
+                {
+                  label: 'Terlambat',
+                  data: data.late,
+                  borderColor: '#ef4444',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  fill: true,
+                  tension: 0.3
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+          });
+        });
+
+      // Fetch Distribution
+      fetch('{{ route("admin.analytics.user_distribution") }}?user_id=' + userId)
+        .then(res => res.json())
+        .then(data => {
+          if (distributionChart) distributionChart.destroy();
+          const ctx = document.getElementById('distributionChart').getContext('2d');
+          distributionChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: data.labels,
+              datasets: [{
+                data: data.data,
+                backgroundColor: ['#10b981', '#f59e0b', '#6b7280'],
+                borderWidth: 0
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: '70%',
+              plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+              }
+            }
+          });
+        });
+    }
+
+    initCharts();
+  });
 </script>
 @endsection
+
