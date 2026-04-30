@@ -159,6 +159,62 @@ class AdminController extends Controller
         return back()->with('success', 'Shift kerja berhasil dihapus.');
     }
 
+    public function userShifts(Request $request)
+    {
+        $search = $request->input('search');
+        $users = User::where('role', 'user')
+            ->when($search, function ($q) use ($search) {
+                return $q->where(function($query) use ($search) {
+                    $query->where('nama', 'like', "%{$search}%")
+                          ->orWhere('username', 'like', "%{$search}%")
+                          ->orWhere('devisi', 'like', "%{$search}%");
+                });
+            })
+            ->with(['shifts' => function($q) {
+                $q->where('aktif', 1);
+            }, 'shifts.shift'])
+            ->orderBy('nama')
+            ->paginate(15);
+            
+        $shifts = \App\Models\ShiftMaster::where('aktif', 1)->orderBy('jam_masuk')->get();
+            
+        return view('admin.user_shifts', compact('users', 'shifts', 'search'));
+    }
+
+    public function updateUserShift(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'shift_id' => 'required|exists:shift_master,id',
+        ]);
+
+        // Nonaktifkan shift lama jika ada
+        \App\Models\UserShift::where('user_id', $user->id)->update(['aktif' => 0]);
+
+        // Buat atau aktifkan shift baru
+        \App\Models\UserShift::create([
+            'user_id' => $user->id,
+            'shift_id' => $validated['shift_id'],
+            'aktif' => 1
+        ]);
+
+        $shiftMaster = \App\Models\ShiftMaster::find($validated['shift_id']);
+        $this->notifyUsersSingle($user->id, 'shift_update', 'Penempatan Shift Baru', "Anda telah ditempatkan pada Shift '{$shiftMaster->nama_shift}' oleh Admin.");
+
+        return back()->with('success', "Shift kerja untuk {$user->nama} berhasil diperbarui.");
+    }
+
+    private function notifyUsersSingle($userId, $type, $title, $message)
+    {
+        \App\Models\Notification::create([
+            'user_id' => $userId,
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
+            'is_read' => 0,
+            'created_at' => now()
+        ]);
+    }
+
     public function tugas()
     {
         $tugas = \App\Models\TugasMaster::orderBy('nama_tugas')->get();

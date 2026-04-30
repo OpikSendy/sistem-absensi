@@ -4,9 +4,31 @@
 @section('page-title', 'Dashboard Saya')
 
 @section('content')
-<div class="mb-4">
-  <h4 class="fw-bold text-dark mb-1">Halo, {{ auth()->user()->nama ?: auth()->user()->username }}! 👋</h4>
-  <p class="text-muted mb-0 small">{{ now()->translatedFormat('l, d F Y') }}</p>
+<div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+  <div>
+    <h4 class="fw-bold text-dark mb-1">Halo, {{ auth()->user()->nama ?: auth()->user()->username }}! 👋</h4>
+    <p class="text-muted mb-0 small">{{ now()->translatedFormat('l, d F Y') }}</p>
+  </div>
+  <div>
+    @if(isset($activeShift) && $activeShift->shift)
+      <div class="d-flex align-items-center gap-2 bg-white px-3 py-2 rounded-pill shadow-sm border border-primary border-opacity-10">
+        <i class="bi bi-clock-history text-primary"></i>
+        <div class="small">
+          <span class="text-muted me-1">Shift Aktif:</span>
+          <strong class="text-primary">{{ $activeShift->shift->nama_shift }}</strong>
+          <span class="text-muted ms-1" style="font-size: 0.75rem;">({{ \Carbon\Carbon::parse($activeShift->shift->jam_masuk)->format('H:i') }})</span>
+        </div>
+      </div>
+    @else
+      <div class="d-flex align-items-center gap-2 bg-white px-3 py-2 rounded-pill shadow-sm border border-secondary border-opacity-10">
+        <i class="bi bi-info-circle text-secondary"></i>
+        <div class="small">
+          <span class="text-muted me-1">Shift Aktif:</span>
+          <strong class="text-secondary">Default (Bebas)</strong>
+        </div>
+      </div>
+    @endif
+  </div>
 </div>
 
 <div class="row g-3 mb-4">

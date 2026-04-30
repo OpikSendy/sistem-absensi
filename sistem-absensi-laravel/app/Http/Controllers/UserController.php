@@ -87,11 +87,17 @@ class UserController extends Controller
             ->where('is_telat', 1)
             ->count();
 
+        $activeShift = \App\Models\UserShift::with('shift')
+            ->where('user_id', $user->id)
+            ->where('aktif', 1)
+            ->first();
+
         return view('user.dashboard', compact(
             'totalKehadiran',
             'absenMasukHariIni',
             'absenPulangHariIni',
-            'terlambatBulanIni'
+            'terlambatBulanIni',
+            'activeShift'
         ));
     }
 

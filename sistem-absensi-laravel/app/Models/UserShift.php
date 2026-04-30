@@ -10,6 +10,9 @@ class UserShift extends Model
 
     protected $fillable = ['user_id', 'shift_id', 'aktif'];
 
+    public $timestamps = false;
+
+
     public function user()
     {
         return $this->belongsTo(User::class);

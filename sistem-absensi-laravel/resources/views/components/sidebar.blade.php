@@ -19,6 +19,9 @@
     <a href="{{ route('admin.shifts') }}" class="{{ request()->routeIs('admin.shifts') ? 'active' : '' }}">
       <i class="bi bi-clock-history"></i> Shift Kerja
     </a>
+    <a href="{{ route('admin.user_shifts') }}" class="{{ request()->routeIs('admin.user_shifts') ? 'active' : '' }}">
+      <i class="bi bi-person-lines-fill"></i> Penempatan Shift
+    </a>
     <a href="{{ route('admin.tugas') }}" class="{{ request()->routeIs('admin.tugas') ? 'active' : '' }}">
       <i class="bi bi-list-check"></i> Master Tugas
     </a>

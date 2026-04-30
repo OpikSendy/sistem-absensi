@@ -57,6 +57,11 @@ Route::middleware(['auth', 'role:admin'])
         Route::put('/shifts/{shift}', [AdminController::class, 'updateShift'])->name('shifts.update');
         Route::delete('/shifts/{shift}', [AdminController::class, 'destroyShift'])->name('shifts.destroy');
 
+        // Penempatan Shift Karyawan
+        Route::get('/user-shifts', [AdminController::class, 'userShifts'])->name('user_shifts');
+        Route::post('/user-shifts/{user}', [AdminController::class, 'updateUserShift'])->name('user_shifts.update');
+
+
         Route::get('/tugas', [AdminController::class, 'tugas'])->name('tugas');
         Route::post('/tugas', [AdminController::class, 'storeTugas'])->name('tugas.store');
         Route::put('/tugas/{tugas}', [AdminController::class, 'updateTugas'])->name('tugas.update');

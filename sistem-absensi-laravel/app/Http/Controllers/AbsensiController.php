@@ -94,8 +94,9 @@ class AbsensiController extends Controller
                         $scheduled = Carbon::parse($ymd . ' ' . $shiftInfo['jam_masuk'], 'Asia/Jakarta');
                         $allowed = $scheduled->copy()->addMinutes($shiftInfo['toleransi_menit']);
                         if ($now->gt($allowed)) {
-                            $telatMenit = (int) ceil($now->diffInMinutes($allowed));
+                            $telatMenit = (int) ceil($allowed->diffInMinutes($now));
                         }
+
                     }
                     $absensiData['shift_id'] = $shiftInfo['shift_id'];
                     $absensiData['telat_menit'] = $telatMenit;
@@ -224,34 +225,45 @@ class AbsensiController extends Controller
 
     private function getEffectiveShift(int $userId, string $tanggal): array
     {
-        // Priority 1: user_jadwal
-        $jadwal = DB::table('user_jadwal as uj')
-            ->leftJoin('shift_master as sm', 'sm.id', '=', 'uj.shift_id')
-            ->where('uj.user_id', $userId)->where('uj.tanggal', $tanggal)
-            ->select(
-                'uj.shift_id',
-                DB::raw('COALESCE(uj.jam_masuk, sm.jam_masuk) as jam_masuk'),
-                DB::raw('COALESCE(sm.toleransi_menit, 10) as toleransi_menit')
-            )
+        // 1. Prioritas Utama: Jadwal Spesifik (user_jadwal)
+        // Jika ada jadwal khusus untuk tanggal ini, gunakan itu.
+        $jadwal = \App\Models\UserJadwal::with('shift')
+            ->where('user_id', $userId)
+            ->where('tanggal', $tanggal)
             ->first();
-        if ($jadwal)
-            return (array) $jadwal;
 
-        // Priority 2: user_shift aktif
-        $shift = DB::table('user_shift as us')
-            ->leftJoin('shift_master as sm', 'sm.id', '=', 'us.shift_id')
-            ->where('us.user_id', $userId)->where('us.aktif', 1)
-            ->select(
-                'us.shift_id',
-                'sm.jam_masuk',
-                DB::raw('COALESCE(sm.toleransi_menit, 10) as toleransi_menit')
-            )
+        if ($jadwal) {
+            $jamMasuk = $jadwal->jam_masuk ?: ($jadwal->shift ? $jadwal->shift->jam_masuk : null);
+            if ($jamMasuk) {
+                return [
+                    'shift_id' => $jadwal->shift_id,
+                    'jam_masuk' => $jamMasuk,
+                    'toleransi_menit' => $jadwal->shift ? $jadwal->shift->toleransi_menit : 10
+                ];
+            }
+        }
+
+        // 2. Prioritas Kedua: Penempatan Shift Tetap (user_shift)
+        // Jika tidak ada jadwal harian, gunakan shift yang sudah ditempatkan admin secara permanen.
+        $userShift = \App\Models\UserShift::with('shift')
+            ->where('user_id', $userId)
+            ->where('aktif', 1)
             ->first();
-        if ($shift)
-            return (array) $shift;
 
+
+
+        if ($userShift && $userShift->shift) {
+            return [
+                'shift_id' => $userShift->shift_id,
+                'jam_masuk' => $userShift->shift->jam_masuk,
+                'toleransi_menit' => $userShift->shift->toleransi_menit ?? 10
+            ];
+        }
+
+        // Default: Tidak ada shift yang terdeteksi
         return ['shift_id' => null, 'jam_masuk' => null, 'toleransi_menit' => 10];
     }
+
 }
 
 
