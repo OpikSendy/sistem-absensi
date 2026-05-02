@@ -155,6 +155,37 @@ class UserController extends Controller
 
     // ─── Analytics ─────────────────────────────────────────────────────────────
 
+    public function getRankingData()
+    {
+        // Gunakan startOfWeek dan endOfWeek untuk rentang 1 minggu
+        $startOfWeek = now()->startOfWeek()->format('Y-m-d');
+        $endOfWeek = now()->endOfWeek()->format('Y-m-d');
+
+        $ranking = Absensi::selectRaw('user_id, count(*) as total_tepat_waktu')
+            ->whereBetween('tanggal', [$startOfWeek, $endOfWeek])
+            ->where('status', 'masuk')
+            ->where('is_telat', 0) // Pastikan kolom ini benar di database (0 = tidak telat)
+            ->groupBy('user_id')
+            ->orderByDesc('total_tepat_waktu')
+            ->limit(5)
+            ->with('user:id,nama')
+            ->get();
+
+        $labels = [];
+        $data = [];
+
+        foreach ($ranking as $rank) {
+            $labels[] = $rank->user->nama ?? 'User';
+            $data[] = (int) $rank->total_tepat_waktu;
+        }
+
+        // Tambahkan pengecekan jika data kosong agar Chart.js tidak error
+        return response()->json([
+            'labels' => !empty($labels) ? $labels : ['No Data'],
+            'data' => !empty($data) ? $data : [0]
+        ]);
+    }
+
     public function getMyDisciplineData()
     {
         $userId = Auth::id();

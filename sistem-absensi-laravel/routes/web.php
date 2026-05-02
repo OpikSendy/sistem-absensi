@@ -40,6 +40,7 @@ Route::middleware(['auth', 'role:user'])
         Route::post('/absensi/store', [AbsensiController::class, 'store'])->name('absensi.store');
 
         // Analytics
+        Route::get('/analytics/ranking', [UserController::class, 'getRankingData'])->name('analytics.ranking');
         Route::get('/analytics/my-discipline', [UserController::class, 'getMyDisciplineData'])->name('analytics.my_discipline');
         Route::get('/analytics/my-distribution', [UserController::class, 'getMyDistributionData'])->name('analytics.my_distribution');
     });
