@@ -74,6 +74,12 @@ Route::middleware(['auth', 'role:admin'])
         Route::put('/tugas/{tugas}', [AdminController::class, 'updateTugas'])->name('tugas.update');
         Route::delete('/tugas/{tugas}', [AdminController::class, 'destroyTugas'])->name('tugas.destroy');
 
+        // Sub Tugas
+        Route::post('/sub-tugas', [AdminController::class, 'storeSubTugas'])->name('sub_tugas.store');
+        Route::put('/sub-tugas/{sub}', [AdminController::class, 'updateSubTugas'])->name('sub_tugas.update');
+        Route::delete('/sub-tugas/{sub}', [AdminController::class, 'destroySubTugas'])->name('sub_tugas.destroy');
+        Route::get('/sub-tugas/by-master/{master}', [AdminController::class, 'getSubTugasByMaster'])->name('sub_tugas.by_master');
+
         // Penugasan Karyawan
         Route::get('/penugasan', [App\Http\Controllers\PenugasanController::class, 'index'])->name('penugasan');
         Route::post('/penugasan', [App\Http\Controllers\PenugasanController::class, 'store'])->name('penugasan.store');

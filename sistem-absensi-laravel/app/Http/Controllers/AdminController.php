@@ -269,8 +269,53 @@ class AdminController extends Controller
 
     public function tugas()
     {
-        $tugas = \App\Models\TugasMaster::orderBy('nama_tugas')->get();
-        return view('admin.tugas', compact('tugas'));
+        $tugas = \App\Models\TugasMaster::with('subTugas')->orderBy('nama_tugas')->get();
+        $subTugas = \App\Models\TugasSubMaster::with('master')->orderBy('nama_sub')->get();
+
+        // Pre-map to plain array to avoid Blade parser issue with fn() => [] inside @json()
+        $subTugasJson = $subTugas->map(function ($s) {
+            return [
+                'id'        => $s->id,
+                'master_id' => $s->master_id,
+                'nama_sub'  => $s->nama_sub,
+                'aktif'     => $s->aktif,
+            ];
+        })->values()->toArray();
+
+        return view('admin.tugas', compact('tugas', 'subTugas', 'subTugasJson'));
+    }
+
+    public function storeSubTugas(Request $request)
+    {
+        $request->validate([
+            'master_id' => 'required|exists:tugas_master,id',
+            'nama_sub'  => 'required|string|max:150',
+            'aktif'     => 'required|boolean',
+        ]);
+        \App\Models\TugasSubMaster::create($request->only('master_id', 'nama_sub', 'aktif'));
+        return back()->with('success', 'Sub Tugas berhasil ditambahkan.');
+    }
+
+    public function updateSubTugas(Request $request, \App\Models\TugasSubMaster $sub)
+    {
+        $request->validate([
+            'master_id' => 'required|exists:tugas_master,id',
+            'nama_sub'  => 'required|string|max:150',
+            'aktif'     => 'required|boolean',
+        ]);
+        $sub->update($request->only('master_id', 'nama_sub', 'aktif'));
+        return back()->with('success', 'Sub Tugas berhasil diperbarui.');
+    }
+
+    public function destroySubTugas(\App\Models\TugasSubMaster $sub)
+    {
+        $sub->delete();
+        return back()->with('success', 'Sub Tugas berhasil dihapus.');
+    }
+
+    public function getSubTugasByMaster(\App\Models\TugasMaster $master)
+    {
+        return response()->json($master->subTugas()->where('aktif', 1)->get(['id', 'nama_sub']));
     }
 
     public function storeTugas(Request $request)
