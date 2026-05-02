@@ -15,4 +15,9 @@ class TugasMaster extends Model
     {
         return $this->hasMany(AbsensiTodo::class, 'master_id');
     }
+
+    public function subTugas()
+    {
+        return $this->hasMany(TugasSubMaster::class, 'master_id')->orderBy('nama_sub');
+    }
 }
