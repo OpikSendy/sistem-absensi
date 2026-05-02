@@ -38,6 +38,7 @@ Route::middleware(['auth', 'role:user'])
 
         // Absensi actions (AJAX/JSON)
         Route::post('/absensi/store', [AbsensiController::class, 'store'])->name('absensi.store');
+        Route::post('/absensi/izin', [AbsensiController::class, 'storeIzin'])->name('absensi.izin');
 
         // Analytics
         Route::get('/analytics/ranking', [UserController::class, 'getRankingData'])->name('analytics.ranking');

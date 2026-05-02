@@ -413,7 +413,7 @@ class AdminController extends Controller
         $onTime = (clone $query)->where('is_telat', 0)->count();
         $late = (clone $query)->where('is_telat', 1)->count();
         
-        $queryIzin = \App\Models\Absensi::whereIn('status', ['izin', 'sakit'])
+        $queryIzin = \App\Models\Absensi::whereIn('status', ['izin', 'sakit', 'cuti'])
             ->whereMonth('tanggal', $month)
             ->whereYear('tanggal', $year);
         if ($userId) {
@@ -422,7 +422,7 @@ class AdminController extends Controller
         $izin = $queryIzin->count();
 
         return response()->json([
-            'labels' => ['Tepat Waktu', 'Terlambat', 'Izin/Sakit'],
+            'labels' => ['Tepat Waktu', 'Terlambat', 'Izin/Sakit/Cuti'],
             'data' => [$onTime, $late, $izin]
         ]);
     }

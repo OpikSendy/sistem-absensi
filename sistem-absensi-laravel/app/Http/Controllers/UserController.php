@@ -80,6 +80,17 @@ class UserController extends Controller
             ->where('status', 'pulang')
             ->first();
 
+        $durasiMenit = 0;
+        if ($absenMasukHariIni) {
+            $waktuMasuk = \Carbon\Carbon::parse($absenMasukHariIni->waktu);
+            $waktuSelesai = $absenPulangHariIni ? \Carbon\Carbon::parse($absenPulangHariIni->waktu) : now('Asia/Jakarta');
+            $durasiMenit = max(0, $waktuSelesai->diffInMinutes($waktuMasuk));
+        }
+
+        $durasiJam = floor($durasiMenit / 60);
+        $sisaMenit = $durasiMenit % 60;
+        $durasiJamKerja = "{$durasiJam}j {$sisaMenit}m";
+
         $terlambatBulanIni = Absensi::where('user_id', $user->id)
             ->whereMonth('tanggal', $month)
             ->whereYear('tanggal', $year)
@@ -97,7 +108,8 @@ class UserController extends Controller
             'absenMasukHariIni',
             'absenPulangHariIni',
             'terlambatBulanIni',
-            'activeShift'
+            'activeShift',
+            'durasiJamKerja'
         ));
     }
 
@@ -233,10 +245,10 @@ class UserController extends Controller
 
         $onTime = (clone $query)->where('status', 'masuk')->where('is_telat', 0)->count();
         $late = (clone $query)->where('status', 'masuk')->where('is_telat', 1)->count();
-        $izin = (clone $query)->whereIn('status', ['izin', 'sakit'])->count();
+        $izin = (clone $query)->whereIn('status', ['izin', 'sakit', 'cuti'])->count();
 
         return response()->json([
-            'labels' => ['Tepat Waktu', 'Terlambat', 'Izin/Sakit'],
+            'labels' => ['Tepat Waktu', 'Terlambat', 'Izin/Sakit/Cuti'],
             'data' => [$onTime, $late, $izin]
         ]);
     }

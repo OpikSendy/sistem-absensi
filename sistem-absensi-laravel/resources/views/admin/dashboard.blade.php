@@ -7,7 +7,11 @@
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
   <div>
     <h4 class="fw-bold text-dark mb-1">Selamat datang, {{ auth()->user()->nama ?: auth()->user()->username }}!</h4>
-    <p class="text-muted mb-0 small">Overview kinerja dan manajemen absensi karyawan.</p>
+    <div class="d-flex align-items-center text-muted small mt-1">
+      <i class="bi bi-calendar-event me-2"></i> {{ now()->translatedFormat('l, d F Y') }}
+      <span class="mx-2">|</span>
+      <i class="bi bi-clock me-1 text-primary"></i> <span id="realtime-clock" class="fw-bold text-primary">--:--:-- WIB</span>
+    </div>
   </div>
 </div>
 
@@ -168,8 +172,16 @@
               <td>
                 @if($abs->status === 'masuk')
                   <span class="badge bg-primary text-white">Masuk</span>
-                @else
+                @elseif($abs->status === 'pulang')
                   <span class="badge bg-info text-dark">Pulang</span>
+                @elseif($abs->status === 'izin')
+                  <span class="badge bg-warning text-dark">Izin</span>
+                @elseif($abs->status === 'sakit')
+                  <span class="badge bg-danger text-white">Sakit</span>
+                @elseif($abs->status === 'cuti')
+                  <span class="badge bg-secondary text-white">Cuti</span>
+                @else
+                  <span class="badge bg-light text-dark">{{ ucfirst($abs->status) }}</span>
                 @endif
               </td>
               <td>
@@ -259,6 +271,17 @@
 
 @section('scripts')
 <script>
+  function updateClock() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const clockEl = document.getElementById('realtime-clock');
+    if(clockEl) clockEl.textContent = `${hours}:${minutes}:${seconds} WIB`;
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
   function viewDetail(id) {
     fetch(`/admin/absensi/${id}`)
       .then(res => res.json())

@@ -103,6 +103,15 @@ class AbsensiController extends Controller
                     $absensiData['is_telat'] = $telatMenit > 0 ? 1 : 0;
                     $absensiData['keterangan'] = $request->input('keterangan');
                 } else {
+                    // Cek Jam Pulang
+                    $shiftInfo = $this->getEffectiveShift($user->id, $ymd);
+                    if ($shiftInfo['jam_pulang']) {
+                        $scheduledPulang = Carbon::parse($ymd . ' ' . $shiftInfo['jam_pulang'], 'Asia/Jakarta');
+                        if ($now->lt($scheduledPulang)) {
+                            return response()->json(['ok' => false, 'msg' => 'Belum waktunya pulang. Jam pulang Anda adalah ' . $scheduledPulang->format('H:i') . ' WIB.']);
+                        }
+                    }
+
                     // Masuk sudah dicek di atas, ambil shift_id dari absen masuk
                     $masuk = Absensi::where('user_id', $user->id)->where('tanggal', $ymd)->where('status', 'masuk')->first();
                     $absensiData['shift_id'] = $masuk->shift_id;
@@ -171,6 +180,84 @@ class AbsensiController extends Controller
         });
     }
 
+    public function storeIzin(Request $request)
+    {
+        $request->validate([
+            'tipe' => 'required|in:izin,sakit,cuti',
+            'tanggal' => 'required|date',
+            'keterangan' => 'required|string',
+            'foto' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        return DB::transaction(function () use ($request) {
+            $user = Auth::user();
+            $now = Carbon::now('Asia/Jakarta');
+            
+            // Cek apakah sudah ada pengajuan/absen pada tanggal tersebut
+            $exists = Absensi::where('user_id', $user->id)
+                ->where('tanggal', $request->tanggal)
+                ->exists();
+
+            if ($exists) {
+                return response()->json(['ok' => false, 'msg' => 'Sudah ada rekam absensi / pengajuan pada tanggal tersebut.']);
+            }
+
+            $fotoPath = null;
+            if ($request->hasFile('foto')) {
+                $fotoPath = $request->file('foto')->store('uploads', 'public');
+            }
+
+            $absensi = Absensi::create([
+                'user_id' => $user->id,
+                'waktu' => $now,
+                'tgl' => $request->tanggal, // legacy
+                'tanggal' => $request->tanggal,
+                'status' => $request->tipe,
+                'approval_status' => 'Pending',
+                'foto' => $fotoPath,
+                'keterangan' => $request->keterangan,
+                'ip_client' => $request->ip(),
+                'user_agent' => Str::limit($request->userAgent(), 250),
+            ]);
+
+            try {
+                $this->notifyAdminsIzin($absensi, $user);
+            } catch (\Exception $e) {
+                Log::error("Notifikasi Izin Gagal: " . $e->getMessage());
+            }
+
+            return response()->json([
+                'ok' => true,
+                'msg' => 'Pengajuan ' . ucfirst($request->tipe) . ' berhasil dikirim.',
+            ]);
+        });
+    }
+
+    private function notifyAdminsIzin($absensi, $user)
+    {
+        $admins = \App\Models\User::where('role', 'admin')->where('aktif', 1)->pluck('id');
+        $type = 'pengajuan_' . $absensi->status;
+        $title = 'Pengajuan ' . ucfirst($absensi->status) . ': ' . $user->nama;
+        $message = "{$user->nama} mengajukan {$absensi->status} untuk tanggal " . \Carbon\Carbon::parse($absensi->tanggal)->format('d/m/Y') . ".";
+
+        $notifications = [];
+        foreach ($admins as $adminId) {
+            $notifications[] = [
+                'user_id' => $adminId,
+                'absensi_id' => $absensi->id,
+                'type' => $type,
+                'title' => $title,
+                'message' => $message,
+                'is_read' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        if (!empty($notifications)) {
+            Notification::insert($notifications);
+        }
+    }
+
     private function notifyAdmins($action, $user, $absensiId)
     {
         $admins = \App\Models\User::where('role', 'admin')->where('aktif', 1)->pluck('id');
@@ -234,10 +321,12 @@ class AbsensiController extends Controller
 
         if ($jadwal) {
             $jamMasuk = $jadwal->jam_masuk ?: ($jadwal->shift ? $jadwal->shift->jam_masuk : null);
+            $jamPulang = $jadwal->jam_pulang ?: ($jadwal->shift ? $jadwal->shift->jam_pulang : null);
             if ($jamMasuk) {
                 return [
                     'shift_id' => $jadwal->shift_id,
                     'jam_masuk' => $jamMasuk,
+                    'jam_pulang' => $jamPulang,
                     'toleransi_menit' => $jadwal->shift ? $jadwal->shift->toleransi_menit : 10
                 ];
             }
@@ -256,12 +345,13 @@ class AbsensiController extends Controller
             return [
                 'shift_id' => $userShift->shift_id,
                 'jam_masuk' => $userShift->shift->jam_masuk,
+                'jam_pulang' => $userShift->shift->jam_pulang,
                 'toleransi_menit' => $userShift->shift->toleransi_menit ?? 10
             ];
         }
 
         // Default: Tidak ada shift yang terdeteksi
-        return ['shift_id' => null, 'jam_masuk' => null, 'toleransi_menit' => 10];
+        return ['shift_id' => null, 'jam_masuk' => null, 'jam_pulang' => null, 'toleransi_menit' => 10];
     }
 
 }
