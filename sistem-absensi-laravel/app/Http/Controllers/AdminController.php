@@ -11,6 +11,7 @@ class AdminController extends Controller
     public function dashboard(Request $request)
     {
         $today = now()->format('Y-m-d');
+        $search = $request->input('search');
         
         $totalKaryawan = User::where('role', 'user')->where('aktif', 1)->count();
         $hadirHariIni = \App\Models\Absensi::where('tanggal', $today)->where('status', 'masuk')->count();
@@ -19,6 +20,11 @@ class AdminController extends Controller
 
         // Ambil data absensi terbaru
         $recentAbsensi = \App\Models\Absensi::with(['user', 'shift'])
+            ->when($search, function ($q) use ($search) {
+                return $q->whereHas('user', function($query) use ($search) {
+                    $query->where('nama', 'like', "%{$search}%");
+                });
+            })
             ->orderBy('waktu', 'desc')
             ->paginate(15);
 
@@ -31,7 +37,8 @@ class AdminController extends Controller
             'terlambatHariIni', 
             'pendingApproval',
             'recentAbsensi',
-            'allUsers'
+            'allUsers',
+            'search'
         ));
     }
 
@@ -165,24 +172,65 @@ class AdminController extends Controller
 
     public function userShifts(Request $request)
     {
-        $search = $request->input('search');
+        $startDate = $request->input('start_date', now()->startOfWeek()->format('Y-m-d'));
+        $endDate   = $request->input('end_date',   now()->startOfWeek()->addDays(6)->format('Y-m-d'));
+
+        // Clamp range to max 14 days for performance
+        $start = \Carbon\Carbon::parse($startDate);
+        $end   = \Carbon\Carbon::parse($endDate);
+        if ($end->diffInDays($start) > 13) {
+            $end = $start->copy()->addDays(13);
+            $endDate = $end->format('Y-m-d');
+        }
+
+        // Build date columns
+        $dates = [];
+        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+            $dates[] = $d->copy();
+        }
+
+        // All active employees
         $users = User::where('role', 'user')
-            ->when($search, function ($q) use ($search) {
-                return $q->where(function($query) use ($search) {
-                    $query->where('nama', 'like', "%{$search}%")
-                          ->orWhere('username', 'like', "%{$search}%")
-                          ->orWhere('devisi', 'like', "%{$search}%");
-                });
-            })
-            ->with(['shifts' => function($q) {
-                $q->where('aktif', 1);
-            }, 'shifts.shift'])
+            ->where('aktif', 1)
             ->orderBy('nama')
-            ->paginate(15);
-            
+            ->get();
+
+        // All shift masters
         $shifts = \App\Models\ShiftMaster::where('aktif', 1)->orderBy('jam_masuk')->get();
-            
-        return view('admin.user_shifts', compact('users', 'shifts', 'search'));
+
+        // Load jadwal harian for range, keyed by user_id => tanggal => UserJadwal
+        $jadwalList = \App\Models\UserJadwal::with('shift')
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->get()
+            ->groupBy('user_id')
+            ->map(fn($rows) => $rows->keyBy('tanggal'));
+
+        return view('admin.user_shifts', compact(
+            'users', 'shifts', 'dates', 'jadwalList', 'startDate', 'endDate'
+        ));
+    }
+
+    public function saveRoster(Request $request)
+    {
+        $request->validate([
+            'entries'   => 'required|array',
+            'entries.*.user_id'  => 'required|exists:users,id',
+            'entries.*.tanggal'  => 'required|date',
+            'entries.*.shift_id' => 'nullable|exists:shift_master,id',
+            'entries.*.status'   => 'required|in:ON,OFF,TM',
+        ]);
+
+        foreach ($request->entries as $entry) {
+            \App\Models\UserJadwal::updateOrCreate(
+                ['user_id' => $entry['user_id'], 'tanggal' => $entry['tanggal']],
+                [
+                    'shift_id' => $entry['shift_id'] ?? null,
+                    'status'   => $entry['status'],
+                ]
+            );
+        }
+
+        return response()->json(['ok' => true, 'msg' => 'Jadwal berhasil disimpan.']);
     }
 
     public function updateUserShift(Request $request, User $user)

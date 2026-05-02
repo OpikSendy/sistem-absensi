@@ -30,8 +30,9 @@
       <div class="d-flex gap-2">
         <form action="{{ route('admin.users') }}" method="GET" class="d-flex position-relative">
           <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-          <input type="text" name="search" class="form-control form-control-sm rounded-pill ps-5"
+          <input type="text" id="searchUsers" name="search" class="form-control form-control-sm rounded-pill ps-5 pe-5"
             placeholder="Cari nama/divisi..." value="{{ $search ?? '' }}">
+          <div id="usersSpinner" class="spinner-border spinner-border-sm text-primary position-absolute top-50 end-0 translate-middle-y me-3 d-none" role="status"></div>
         </form>
         <button class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold" data-bs-toggle="modal"
           data-bs-target="#modalUser">
@@ -273,6 +274,46 @@
         form.action = `/admin/users/${id}`;
         form.submit();
       }
+    }
+
+    // Realtime search
+    const searchUsersInput = document.getElementById('searchUsers');
+    const usersSpinner = document.getElementById('usersSpinner');
+    let usersSearchTimeout;
+
+    if (searchUsersInput) {
+      searchUsersInput.addEventListener('input', function () {
+        clearTimeout(usersSearchTimeout);
+        if (usersSpinner) usersSpinner.classList.remove('d-none');
+
+        usersSearchTimeout = setTimeout(() => {
+          const query = this.value;
+          fetch('{{ route("admin.users") }}?search=' + encodeURIComponent(query), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          })
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newTbody = doc.querySelector('table tbody');
+            if (newTbody) {
+              document.querySelector('table tbody').innerHTML = newTbody.innerHTML;
+            }
+            const newPagination = doc.querySelector('.card-footer');
+            const oldPagination = document.querySelector('.card-footer');
+            if (newPagination && oldPagination) {
+              oldPagination.innerHTML = newPagination.innerHTML;
+            } else if (!newPagination && oldPagination) {
+              oldPagination.remove();
+            }
+            if (usersSpinner) usersSpinner.classList.add('d-none');
+          })
+          .catch(err => {
+            console.error(err);
+            if (usersSpinner) usersSpinner.classList.add('d-none');
+          });
+        }, 500);
+      });
     }
   </script>
 @endsection

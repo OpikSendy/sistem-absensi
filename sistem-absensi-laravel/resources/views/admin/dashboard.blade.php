@@ -128,9 +128,15 @@
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-header bg-white border-bottom-0 pt-4 pb-3 d-flex justify-content-between align-items-center">
     <h6 class="fw-bold mb-0">Log Kehadiran Terbaru</h6>
-    <div class="d-flex gap-2">
-      <a href="{{ route('admin.export.excel') }}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i> Export Excel</a>
-      <a href="{{ route('admin.export.pdf') }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-earmark-pdf me-1"></i> Export PDF</a>
+    <div class="d-flex gap-2 align-items-center">
+      <form action="{{ route('admin.dashboard') }}" method="GET" class="d-flex position-relative">
+        <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+        <input type="text" id="searchLog" name="search" class="form-control form-control-sm rounded-pill ps-5 pe-5"
+          placeholder="Cari nama karyawan..." value="{{ $search ?? '' }}">
+        <div id="searchSpinner" class="spinner-border spinner-border-sm text-primary position-absolute top-50 end-0 translate-middle-y me-3 d-none" role="status"></div>
+      </form>
+      <a href="{{ route('admin.export.excel') }}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i> Export</a>
+      <a href="{{ route('admin.export.pdf') }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-earmark-pdf me-1"></i> PDF</a>
     </div>
   </div>
   <div class="card-body p-0">
@@ -281,6 +287,55 @@
   }
   setInterval(updateClock, 1000);
   updateClock();
+
+  // Realtime search for Log Kehadiran
+  const searchInput = document.getElementById('searchLog');
+  const searchSpinner = document.getElementById('searchSpinner');
+  
+  let searchTimeout;
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      if(searchSpinner) searchSpinner.classList.remove('d-none');
+      
+      searchTimeout = setTimeout(() => {
+        const query = this.value;
+        fetch('{{ route("admin.dashboard") }}?search=' + encodeURIComponent(query), {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          
+          // Replace tbody
+          const newTbody = doc.querySelector('table tbody');
+          if (newTbody) {
+            document.querySelector('table tbody').innerHTML = newTbody.innerHTML;
+          }
+          
+          // Replace pagination
+          const newPagination = doc.querySelector('.card-footer');
+          const oldPagination = document.querySelector('.card-footer');
+          if (newPagination && oldPagination) {
+            oldPagination.innerHTML = newPagination.innerHTML;
+          } else if (newPagination && !oldPagination) {
+            document.querySelector('.table-responsive').parentElement.appendChild(newPagination);
+          } else if (!newPagination && oldPagination) {
+            oldPagination.remove();
+          }
+          
+          if(searchSpinner) searchSpinner.classList.add('d-none');
+        })
+        .catch(err => {
+          console.error(err);
+          if(searchSpinner) searchSpinner.classList.add('d-none');
+        });
+      }, 500);
+    });
+  }
 
   function viewDetail(id) {
     fetch(`/admin/absensi/${id}`)

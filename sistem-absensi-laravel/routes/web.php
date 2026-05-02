@@ -66,6 +66,7 @@ Route::middleware(['auth', 'role:admin'])
         // Penempatan Shift Karyawan
         Route::get('/user-shifts', [AdminController::class, 'userShifts'])->name('user_shifts');
         Route::post('/user-shifts/{user}', [AdminController::class, 'updateUserShift'])->name('user_shifts.update');
+        Route::post('/roster/save', [AdminController::class, 'saveRoster'])->name('roster.save');
 
 
         Route::get('/tugas', [AdminController::class, 'tugas'])->name('tugas');

@@ -1,123 +1,388 @@
 @extends('layouts.app')
-@section('title', 'Penempatan Shift Karyawan | Kesatriyan Admin')
-@section('page-title', 'Penempatan Shift Karyawan')
+@section('title', 'Manajemen Jadwal | Kesatriyan Admin')
+@section('page-title', 'Manajemen Jadwal')
+
+@section('styles')
+<style>
+  .roster-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .roster-table {
+    min-width: 800px;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .roster-table th, .roster-table td {
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .roster-table thead th {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 10;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #6c757d;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .roster-table thead th.col-name {
+    position: sticky;
+    left: 0;
+    z-index: 20;
+    min-width: 180px;
+    text-align: left;
+    padding-left: 16px;
+  }
+  .roster-table td.col-name {
+    position: sticky;
+    left: 0;
+    background: #fff;
+    z-index: 5;
+    min-width: 180px;
+    border-right: 1px solid #dee2e6;
+    padding: 8px 12px;
+  }
+  .roster-table tbody tr:hover td.col-name { background: #f8f9fa; }
+  .roster-table td.col-name:after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 1px;
+    background: #dee2e6;
+  }
+  .roster-cell {
+    text-align: center;
+    padding: 4px 6px;
+    min-width: 90px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .roster-cell:hover { background: #e9ecef; }
+
+  /* Shift pill inside cell */
+  .shift-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: .75rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: transform .1s;
+    user-select: none;
+  }
+  .shift-pill:active { transform: scale(.95); }
+  .shift-btn-off   { background: #f1f3f5; color: #6c757d; border-color: #dee2e6; }
+  .shift-btn-libur { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+
+  /* Palette buttons in header */
+  .palette-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: .78rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: box-shadow .15s, transform .1s;
+    user-select: none;
+  }
+  .palette-btn:active { transform: scale(.95); }
+  .palette-btn.active { box-shadow: 0 0 0 3px rgba(0,0,0,.15); }
+
+  /* Weekend column highlight */
+  .col-weekend th, .col-weekend td { background: #fffbf2 !important; }
+  .roster-table tbody tr:hover .col-weekend td { background: #fff3cd !important; }
+
+  .today-col th, .today-col td { background: #eff6ff !important; border-bottom: 2px solid #3b82f6; }
+
+  /* Save button glow */
+  #btnSaveRoster {
+    transition: box-shadow .2s;
+  }
+  #btnSaveRoster:not(:disabled):hover {
+    box-shadow: 0 0 0 4px rgba(13,110,253,.25);
+  }
+</style>
+@endsection
 
 @section('content')
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+  <div>
+    <h5 class="fw-bold mb-1">Manajemen Jadwal</h5>
+    <p class="text-muted small mb-0">Klik shift di bawah, lalu klik sel karyawan untuk mengisi jadwal.</p>
+  </div>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    {{-- Date Range --}}
+    <form id="rangeForm" action="{{ route('admin.user_shifts') }}" method="GET" class="d-flex align-items-center gap-2">
+      <input type="date" name="start_date" id="startDate" class="form-control form-control-sm" value="{{ $startDate }}" style="max-width:140px;">
+      <span class="text-muted small">s/d</span>
+      <input type="date" name="end_date" id="endDate" class="form-control form-control-sm" value="{{ $endDate }}" style="max-width:140px;">
+      <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+        <i class="bi bi-calendar3 me-1"></i>Tampilkan
+      </button>
+    </form>
+    <button id="btnSaveRoster" class="btn btn-sm btn-success rounded-pill px-4 fw-bold" disabled>
+      <span id="saveText"><i class="bi bi-check-lg me-1"></i>Simpan</span>
+      <span id="saveSpinner" class="d-none"><span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...</span>
+    </button>
+  </div>
+</div>
 
-  @if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show mb-4 border-0 shadow-sm" role="alert">
-      <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-  @endif
+{{-- Shift Palette --}}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-3 px-4 d-flex flex-wrap gap-2 align-items-center">
+    <span class="text-muted small fw-semibold me-2">Pilih Shift:</span>
+    {{-- OFF --}}
+    <button class="palette-btn active" data-shift-id="" data-shift-status="OFF"
+      style="background:#f1f3f5;color:#6c757d;border-color:#dee2e6;" id="palette-off">
+      <i class="bi bi-dash-circle"></i> OFF
+    </button>
+    {{-- Libur --}}
+    <button class="palette-btn" data-shift-id="" data-shift-status="TM"
+      style="background:#fee2e2;color:#dc2626;border-color:#fca5a5;" id="palette-libur">
+      <i class="bi bi-calendar-x"></i> Libur
+    </button>
+    {{-- Dynamic shifts --}}
+    @php
+      $colors = [
+        ['bg'=>'#dbeafe','text'=>'#1d4ed8','border'=>'#93c5fd'],
+        ['bg'=>'#dcfce7','text'=>'#15803d','border'=>'#86efac'],
+        ['bg'=>'#fef9c3','text'=>'#a16207','border'=>'#fde047'],
+        ['bg'=>'#f3e8ff','text'=>'#7e22ce','border'=>'#d8b4fe'],
+        ['bg'=>'#ffe4e6','text'=>'#be123c','border'=>'#fda4af'],
+        ['bg'=>'#ccfbf1','text'=>'#0f766e','border'=>'#5eead4'],
+      ];
+    @endphp
+    @foreach($shifts as $i => $s)
+      @php $c = $colors[$i % count($colors)]; @endphp
+      <button class="palette-btn" data-shift-id="{{ $s->id }}" data-shift-status="hadir"
+        data-shift-label="{{ $s->nama_shift }}" data-shift-time="{{ \Carbon\Carbon::parse($s->jam_masuk)->format('H:i') }}"
+        data-bg="{{ $c['bg'] }}" data-text="{{ $c['text'] }}" data-border="{{ $c['border'] }}"
+        style="background:{{ $c['bg'] }};color:{{ $c['text'] }};border-color:{{ $c['border'] }};"
+        id="palette-shift-{{ $s->id }}">
+        <i class="bi bi-clock"></i> {{ $s->nama_shift }} <span style="font-weight:400;opacity:.7;">{{ \Carbon\Carbon::parse($s->jam_masuk)->format('H:i') }}</span>
+      </button>
+    @endforeach
+  </div>
+</div>
 
-  @if($errors->any())
-    <div class="alert alert-danger alert-dismissible fade show mb-4 border-0 shadow-sm" role="alert">
-      <i class="bi bi-exclamation-triangle-fill me-2"></i>Terjadi kesalahan saat memproses data.
-      <ul class="mb-0 mt-2">
-        @foreach($errors->all() as $error)
-          <li>{{ $error }}</li>
-        @endforeach
-      </ul>
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-  @endif
-
-  <div class="card shadow-sm border-0 mb-4">
-    <div class="card-header bg-white border-bottom-0 pt-4 pb-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-      <h6 class="fw-bold mb-0">Tabel Penempatan Shift Karyawan</h6>
-      <div class="d-flex gap-2">
-        <form action="{{ route('admin.user_shifts') }}" method="GET" class="d-flex position-relative">
-          <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-          <input type="text" name="search" class="form-control form-control-sm rounded-pill ps-5"
-            placeholder="Cari nama karyawan..." value="{{ $search ?? '' }}">
-        </form>
-      </div>
-    </div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light text-muted small">
-            <tr>
-              <th class="ps-4">Karyawan</th>
-              <th>Divisi</th>
-              <th>Shift Saat Ini</th>
-              <th class="pe-4 text-end" style="width: 250px;">Aksi Penempatan</th>
-            </tr>
-          </thead>
-          <tbody>
-            @forelse($users as $u)
-              @php
-                  // Ambil shift aktif dari relasi
-                  $activeShift = $u->shifts->first(); 
-              @endphp
-              <tr>
-                <td class="ps-4">
-                  <div class="d-flex align-items-center gap-2">
-                    @if($u->foto)
-                      <img src="{{ asset('storage/' . $u->foto) }}" class="rounded-circle object-fit-cover" width="36" height="36">
-                    @else
-                      <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width:36px; height:36px; font-size:.9rem;">
-                        {{ strtoupper(substr($u->nama, 0, 2)) }}
-                      </div>
-                    @endif
-                    <div>
-                      <div class="fw-semibold text-dark">{{ $u->nama }}</div>
-                      <div class="text-muted" style="font-size:.75rem;">{{ $u->username }}</div>
-                    </div>
+{{-- Roster Grid --}}
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0 roster-wrap">
+    <table class="roster-table w-100" id="rosterTable">
+      <thead>
+        <tr>
+          <th class="col-name">Karyawan</th>
+          @foreach($dates as $d)
+            <th class="{{ $d->isWeekend() ? 'col-weekend' : '' }} {{ $d->isToday() ? 'today-col' : '' }}">
+              <div>{{ $d->translatedFormat('D') }}</div>
+              <div style="font-size:1rem;font-weight:800;color:#1e293b;">{{ $d->format('d') }}</div>
+            </th>
+          @endforeach
+        </tr>
+      </thead>
+      <tbody>
+        @forelse($users as $u)
+          <tr>
+            <td class="col-name">
+              <div class="d-flex align-items-center gap-2">
+                @if($u->foto)
+                  <img src="{{ asset('storage/' . $u->foto) }}" class="rounded-circle object-fit-cover" width="30" height="30">
+                @else
+                  <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center flex-shrink-0"
+                    style="width:30px;height:30px;font-size:.75rem;">
+                    {{ strtoupper(substr($u->nama, 0, 2)) }}
                   </div>
-                </td>
-                <td class="text-muted small">{{ $u->devisi ?: '-' }}</td>
-                <td>
-                  @if($activeShift && $activeShift->shift)
-                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 py-2 px-3">
-                        <i class="bi bi-clock me-1"></i> {{ $activeShift->shift->nama_shift }}
-                        ({{ \Carbon\Carbon::parse($activeShift->shift->jam_masuk)->format('H:i') }})
-                    </span>
-                  @else
-                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 py-2 px-3">
-                        <i class="bi bi-exclamation-circle me-1"></i> Belum Ada Shift
-                    </span>
-                  @endif
-                </td>
-                <td class="pe-4 text-end">
-                    <form action="{{ route('admin.user_shifts.update', $u->id) }}" method="POST" class="d-flex gap-2 justify-content-end align-items-center">
-                        @csrf
-                        <select name="shift_id" class="form-select form-select-sm" style="max-width: 180px;" required onchange="this.form.submit()">
-                            <option value="">-- Pilih Shift --</option>
-                            @foreach($shifts as $s)
-                                <option value="{{ $s->id }}" {{ ($activeShift && $activeShift->shift_id == $s->id) ? 'selected' : '' }}>
-                                    {{ $s->nama_shift }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </form>
-                </td>
-              </tr>
-            @empty
-              <tr>
-                <td colspan="4" class="text-center text-muted py-4">Tidak ada data karyawan ditemukan.</td>
-              </tr>
-            @endforelse
-          </tbody>
-        </table>
-      </div>
-    </div>
-    @if($users->hasPages())
-      <div class="card-footer bg-white border-0 pt-3 pb-3">
-        {{ $users->appends(['search' => $search])->links('pagination::bootstrap-5') }}
-      </div>
-    @endif
+                @endif
+                <div>
+                  <div class="fw-semibold text-dark" style="font-size:.82rem;">{{ $u->nama }}</div>
+                  <div class="text-muted" style="font-size:.68rem;">{{ $u->devisi ?: '-' }}</div>
+                </div>
+              </div>
+            </td>
+            @foreach($dates as $d)
+              @php
+                $ymd  = $d->format('Y-m-d');
+                $jadwal = $jadwalList[$u->id][$ymd] ?? null;
+                $isWeekend = $d->isWeekend();
+                $isToday   = $d->isToday();
+              @endphp
+              <td class="roster-cell {{ $isWeekend ? 'col-weekend' : '' }} {{ $isToday ? 'today-col' : '' }}"
+                data-user-id="{{ $u->id }}"
+                data-tanggal="{{ $ymd }}"
+                data-shift-id="{{ $jadwal?->shift_id ?? '' }}"
+                data-status="{{ $jadwal?->status ?? ($isWeekend ? 'TM' : 'OFF') }}"
+                onclick="handleCellClick(this)">
+                @if($jadwal && $jadwal->status === 'ON' && $jadwal->shift)
+                  @php
+                    $idx = $shifts->search(fn($s) => $s->id === $jadwal->shift_id);
+                    $c2  = $idx !== false ? $colors[$idx % count($colors)] : $colors[0];
+                  @endphp
+                  <span class="shift-pill"
+                    style="background:{{ $c2['bg'] }};color:{{ $c2['text'] }};border-color:{{ $c2['border'] }};">
+                    {{ $jadwal->shift->nama_shift }}
+                  </span>
+                @elseif($jadwal && $jadwal->status === 'TM')
+                  <span class="shift-pill shift-btn-libur"><i class="bi bi-calendar-x"></i></span>
+                @else
+                  <span class="shift-pill shift-btn-off"><i class="bi bi-dash"></i></span>
+                @endif
+              </td>
+            @endforeach
+          </tr>
+        @empty
+          <tr>
+            <td colspan="{{ count($dates) + 1 }}" class="text-center text-muted py-5">
+              <i class="bi bi-calendar2-x fs-2 d-block mb-2"></i>Belum ada karyawan aktif.
+            </td>
+          </tr>
+        @endforelse
+      </tbody>
+    </table>
   </div>
+</div>
 
-  <div class="alert alert-info shadow-sm border-0 mt-4">
-    <div class="d-flex align-items-start gap-3">
-        <i class="bi bi-info-circle-fill fs-4 text-info"></i>
-        <div>
-            <h6 class="fw-bold mb-1">Informasi Penempatan Shift</h6>
-            <p class="small mb-0">Setiap karyawan harus memiliki shift kerja (misal: Pagi, Siang, dll) yang berlaku setiap harinya. Jika karyawan belum memiliki shift kerja yang aktif, absensinya akan menggunakan perhitungan waktu bebas/fleksibel (Default). Penempatan shift ini berlaku permanen hingga admin mengubahnya kembali.</p>
-        </div>
-    </div>
-  </div>
+{{-- Legend --}}
+<div class="mt-3 d-flex flex-wrap gap-3 align-items-center">
+  <small class="text-muted fw-semibold">Keterangan:</small>
+  <span class="shift-pill shift-btn-off"><i class="bi bi-dash"></i> Belum diatur</span>
+  <span class="shift-pill shift-btn-libur"><i class="bi bi-calendar-x"></i> Libur</span>
+  @foreach($shifts as $i => $s)
+    @php $c = $colors[$i % count($colors)]; @endphp
+    <span class="shift-pill" style="background:{{ $c['bg'] }};color:{{ $c['text'] }};border-color:{{ $c['border'] }};">
+      {{ $s->nama_shift }}
+    </span>
+  @endforeach
+</div>
 
+@endsection
+
+@section('scripts')
+<script>
+  // ─── State ────────────────────────────────────────────────────────────────────
+  // Selected palette
+  let selectedPalette = {
+    shiftId: '',
+    status: 'off',
+    label: 'OFF',
+    bg: '#f1f3f5',
+    text: '#6c757d',
+    border: '#dee2e6',
+    time: ''
+  };
+
+  // Changed cells: keyed by "userId_tanggal" => entry object
+  const changedCells = {};
+
+  // ─── Palette click ────────────────────────────────────────────────────────────
+  document.querySelectorAll('.palette-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.palette-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    selectedPalette = {
+        shiftId: btn.dataset.shiftId || '',
+        status:  btn.dataset.shiftStatus,
+        label:   btn.dataset.shiftLabel || btn.textContent.trim().split('\n')[0].trim(),
+        bg:      btn.dataset.bg    || '#f1f3f5',
+        text:    btn.dataset.text  || '#6c757d',
+        border:  btn.dataset.border || '#dee2e6',
+        time:    btn.dataset.shiftTime || ''
+      };
+    });
+  });
+
+  // ─── Cell click ───────────────────────────────────────────────────────────────
+  function handleCellClick(cell) {
+    const userId  = cell.dataset.userId;
+    const tanggal = cell.dataset.tanggal;
+    const key     = userId + '_' + tanggal;
+
+    // Apply palette visually
+    let pillHtml = '';
+    if (selectedPalette.status === 'OFF') {
+      pillHtml = `<span class="shift-pill shift-btn-off"><i class="bi bi-dash"></i></span>`;
+    } else if (selectedPalette.status === 'TM') {
+      pillHtml = `<span class="shift-pill shift-btn-libur"><i class="bi bi-calendar-x"></i></span>`;
+    } else {
+      pillHtml = `<span class="shift-pill" style="background:${selectedPalette.bg};color:${selectedPalette.text};border-color:${selectedPalette.border};">
+        ${selectedPalette.label}
+      </span>`;
+    }
+    cell.innerHTML = pillHtml;
+
+    // Track change
+    changedCells[key] = {
+      user_id:  userId,
+      tanggal:  tanggal,
+      shift_id: selectedPalette.shiftId || null,
+      status:   selectedPalette.status === 'TM' ? 'TM' : (selectedPalette.status === 'OFF' ? 'OFF' : 'ON')
+    };
+
+    document.getElementById('btnSaveRoster').disabled = false;
+  }
+
+  // ─── Save Roster ──────────────────────────────────────────────────────────────
+  document.getElementById('btnSaveRoster').addEventListener('click', async () => {
+    const entries = Object.values(changedCells);
+    if (entries.length === 0) return;
+
+    document.getElementById('saveText').classList.add('d-none');
+    document.getElementById('saveSpinner').classList.remove('d-none');
+    document.getElementById('btnSaveRoster').disabled = true;
+
+    try {
+      const response = await fetch('{{ route("admin.roster.save") }}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ entries })
+      });
+
+      const data = await response.json();
+      if (data.ok) {
+        // Show success feedback
+        const btn = document.getElementById('btnSaveRoster');
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-success');
+        document.getElementById('saveText').innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Tersimpan!';
+        document.getElementById('saveText').classList.remove('d-none');
+        document.getElementById('saveSpinner').classList.add('d-none');
+        // Clear changed state after 2s
+        setTimeout(() => {
+          btn.classList.add('btn-success');
+          btn.classList.remove('btn-outline-success');
+          document.getElementById('saveText').innerHTML = '<i class="bi bi-check-lg me-1"></i>Simpan';
+          btn.disabled = true;
+          Object.keys(changedCells).forEach(k => delete changedCells[k]);
+        }, 2000);
+      } else {
+        alert('Gagal menyimpan: ' + (data.msg || 'Error'));
+        resetSaveBtn();
+      }
+    } catch (err) {
+      alert('Koneksi error saat menyimpan jadwal.');
+      resetSaveBtn();
+    }
+  });
+
+  function resetSaveBtn() {
+    document.getElementById('saveText').classList.remove('d-none');
+    document.getElementById('saveSpinner').classList.add('d-none');
+    document.getElementById('btnSaveRoster').disabled = false;
+  }
+</script>
 @endsection
