@@ -192,6 +192,9 @@ class AdminController extends Controller
         // All active employees
         $users = User::where('role', 'user')
             ->where('aktif', 1)
+            ->with(['shifts' => function($q) {
+                $q->where('aktif', 1)->with('shift');
+            }])
             ->orderBy('nama')
             ->get();
 
