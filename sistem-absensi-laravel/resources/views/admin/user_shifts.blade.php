@@ -177,7 +177,7 @@
     @endphp
     @foreach($shifts as $i => $s)
       @php $c = $colors[$i % count($colors)]; @endphp
-      <button class="palette-btn" data-shift-id="{{ $s->id }}" data-shift-status="hadir"
+      <button class="palette-btn" data-shift-id="{{ $s->id }}" data-shift-status="ON"
         data-shift-label="{{ $s->nama_shift }}" data-shift-time="{{ \Carbon\Carbon::parse($s->jam_masuk)->format('H:i') }}"
         data-bg="{{ $c['bg'] }}" data-text="{{ $c['text'] }}" data-border="{{ $c['border'] }}"
         style="background:{{ $c['bg'] }};color:{{ $c['text'] }};border-color:{{ $c['border'] }};"
@@ -208,7 +208,7 @@
           <tr>
             <td class="col-name">
               <div class="d-flex align-items-center gap-2">
-                @if($u->foto)
+                @if($u->foto && \Illuminate\Support\Facades\Storage::disk('public')->exists($u->foto))
                   <img src="{{ asset('storage/' . $u->foto) }}" class="rounded-circle object-fit-cover" width="30" height="30">
                 @else
                   <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center flex-shrink-0"
@@ -228,12 +228,13 @@
                 $jadwal = $jadwalList[$u->id][$ymd] ?? null;
                 $isWeekend = $d->isWeekend();
                 $isToday   = $d->isToday();
+                $permanentShift = $u->shifts->first();
               @endphp
               <td class="roster-cell {{ $isWeekend ? 'col-weekend' : '' }} {{ $isToday ? 'today-col' : '' }}"
                 data-user-id="{{ $u->id }}"
                 data-tanggal="{{ $ymd }}"
-                data-shift-id="{{ $jadwal?->shift_id ?? '' }}"
-                data-status="{{ $jadwal?->status ?? ($isWeekend ? 'TM' : 'OFF') }}"
+                data-shift-id="{{ $jadwal ? ($jadwal->status === 'ON' ? $jadwal->shift_id : '') : ($isWeekend ? '' : ($permanentShift ? $permanentShift->shift_id : '')) }}"
+                data-status="{{ $jadwal ? $jadwal->status : ($isWeekend ? 'TM' : ($permanentShift ? 'ON' : 'OFF')) }}"
                 onclick="handleCellClick(this)">
                 @if($jadwal && $jadwal->status === 'ON' && $jadwal->shift)
                   @php
@@ -246,8 +247,22 @@
                   </span>
                 @elseif($jadwal && $jadwal->status === 'TM')
                   <span class="shift-pill shift-btn-libur"><i class="bi bi-calendar-x"></i></span>
-                @else
+                @elseif($jadwal && $jadwal->status === 'OFF')
                   <span class="shift-pill shift-btn-off"><i class="bi bi-dash"></i></span>
+                @else
+                  @if($isWeekend)
+                    <span class="shift-pill shift-btn-libur"><i class="bi bi-calendar-x"></i></span>
+                  @elseif($permanentShift && $permanentShift->shift)
+                    @php
+                      $idx = $shifts->search(fn($s) => $s->id === $permanentShift->shift_id);
+                      $c2  = $idx !== false ? $colors[$idx % count($colors)] : $colors[0];
+                    @endphp
+                    <span class="shift-pill" style="background:{{ $c2['bg'] }};color:{{ $c2['text'] }};border-color:{{ $c2['border'] }};opacity:0.75;" title="Shift Permanen">
+                      {{ $permanentShift->shift->nama_shift }}
+                    </span>
+                  @else
+                    <span class="shift-pill shift-btn-off"><i class="bi bi-dash"></i></span>
+                  @endif
                 @endif
               </td>
             @endforeach
