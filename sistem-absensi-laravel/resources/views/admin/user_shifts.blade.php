@@ -113,6 +113,17 @@
   #btnSaveRoster:not(:disabled):hover {
     box-shadow: 0 0 0 4px rgba(13,110,253,.25);
   }
+
+  /* Changed cell highlight */
+  .cell-changed {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+  }
+
+  /* Crosshair cursor when hovering cells */
+  .roster-cell {
+    cursor: crosshair;
+  }
 </style>
 @endsection
 
@@ -271,10 +282,9 @@
 @section('scripts')
 <script>
   // ─── State ────────────────────────────────────────────────────────────────────
-  // Selected palette
   let selectedPalette = {
     shiftId: '',
-    status: 'off',
+    status: 'OFF',       // Must match DB enum: ON | OFF | TM
     label: 'OFF',
     bg: '#f1f3f5',
     text: '#6c757d',
@@ -285,30 +295,33 @@
   // Changed cells: keyed by "userId_tanggal" => entry object
   const changedCells = {};
 
+  // Block-select state
+  let isDragging = false;
+
   // ─── Palette click ────────────────────────────────────────────────────────────
   document.querySelectorAll('.palette-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.palette-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-    selectedPalette = {
+      selectedPalette = {
         shiftId: btn.dataset.shiftId || '',
         status:  btn.dataset.shiftStatus,
-        label:   btn.dataset.shiftLabel || btn.textContent.trim().split('\n')[0].trim(),
-        bg:      btn.dataset.bg    || '#f1f3f5',
-        text:    btn.dataset.text  || '#6c757d',
+        label:   btn.dataset.shiftLabel || btn.textContent.trim(),
+        bg:      btn.dataset.bg     || '#f1f3f5',
+        text:    btn.dataset.text   || '#6c757d',
         border:  btn.dataset.border || '#dee2e6',
         time:    btn.dataset.shiftTime || ''
       };
     });
   });
 
-  // ─── Cell click ───────────────────────────────────────────────────────────────
-  function handleCellClick(cell) {
+  // ─── Apply palette to a single cell ──────────────────────────────────────────
+  function applyPaletteToCell(cell) {
     const userId  = cell.dataset.userId;
     const tanggal = cell.dataset.tanggal;
-    const key     = userId + '_' + tanggal;
+    if (!userId || !tanggal) return;
+    const key = userId + '_' + tanggal;
 
-    // Apply palette visually
     let pillHtml = '';
     if (selectedPalette.status === 'OFF') {
       pillHtml = `<span class="shift-pill shift-btn-off"><i class="bi bi-dash"></i></span>`;
@@ -320,17 +333,41 @@
       </span>`;
     }
     cell.innerHTML = pillHtml;
+    cell.classList.add('cell-changed');
 
-    // Track change
     changedCells[key] = {
       user_id:  userId,
       tanggal:  tanggal,
       shift_id: selectedPalette.shiftId || null,
-      status:   selectedPalette.status === 'TM' ? 'TM' : (selectedPalette.status === 'OFF' ? 'OFF' : 'ON')
+      status:   selectedPalette.status  // Already ON | OFF | TM
     };
 
     document.getElementById('btnSaveRoster').disabled = false;
   }
+
+  // ─── Cell click (single) ──────────────────────────────────────────────────────
+  function handleCellClick(cell) {
+    applyPaletteToCell(cell);
+  }
+
+  // ─── Block / Drag select ──────────────────────────────────────────────────────
+  const rosterTable = document.getElementById('rosterTable');
+
+  rosterTable.addEventListener('mousedown', e => {
+    const cell = e.target.closest('.roster-cell');
+    if (!cell) return;
+    isDragging = true;
+    applyPaletteToCell(cell);
+    e.preventDefault(); // prevent text selection while dragging
+  });
+
+  rosterTable.addEventListener('mouseover', e => {
+    if (!isDragging) return;
+    const cell = e.target.closest('.roster-cell');
+    if (cell) applyPaletteToCell(cell);
+  });
+
+  document.addEventListener('mouseup', () => { isDragging = false; });
 
   // ─── Save Roster ──────────────────────────────────────────────────────────────
   document.getElementById('btnSaveRoster').addEventListener('click', async () => {
@@ -354,26 +391,25 @@
 
       const data = await response.json();
       if (data.ok) {
-        // Show success feedback
         const btn = document.getElementById('btnSaveRoster');
-        btn.classList.remove('btn-success');
-        btn.classList.add('btn-outline-success');
+        btn.classList.replace('btn-success', 'btn-outline-success');
         document.getElementById('saveText').innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Tersimpan!';
         document.getElementById('saveText').classList.remove('d-none');
         document.getElementById('saveSpinner').classList.add('d-none');
-        // Clear changed state after 2s
+        // Remove highlight from changed cells
+        document.querySelectorAll('.cell-changed').forEach(c => c.classList.remove('cell-changed'));
         setTimeout(() => {
-          btn.classList.add('btn-success');
-          btn.classList.remove('btn-outline-success');
+          btn.classList.replace('btn-outline-success', 'btn-success');
           document.getElementById('saveText').innerHTML = '<i class="bi bi-check-lg me-1"></i>Simpan';
           btn.disabled = true;
           Object.keys(changedCells).forEach(k => delete changedCells[k]);
         }, 2000);
       } else {
-        alert('Gagal menyimpan: ' + (data.msg || 'Error'));
+        alert('Gagal menyimpan: ' + (data.msg || 'Error tidak diketahui'));
         resetSaveBtn();
       }
     } catch (err) {
+      console.error(err);
       alert('Koneksi error saat menyimpan jadwal.');
       resetSaveBtn();
     }
