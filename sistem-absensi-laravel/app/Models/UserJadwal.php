@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class UserJadwal extends Model
 {
     protected $table = 'user_jadwal';
+    public $timestamps = false;
 
     protected $fillable = [
         'user_id', 'shift_id', 'tanggal',
